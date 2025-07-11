@@ -28,9 +28,9 @@ def calculate_paye(taxable_income):
     return round(tax, 2)
 
 def calculate_nssf(gross_pay, contract_type='permanent'):
-    """Calculate NSSF contribution (6% with max pensionable pay of KES 18,000, exempted for casual)"""
-    if contract_type == 'casual':
-        return 0  # Casual labourers are exempted from NSSF
+    """Calculate NSSF contribution (6% with max pensionable pay of KES 18,000, exempted for contract)"""
+    if contract_type == 'contract':
+        return 0  # Contract employees are exempted from NSSF
 
     pensionable_pay = min(gross_pay, 18000)
     return round(pensionable_pay * 0.06, 2)
@@ -42,9 +42,9 @@ def calculate_shif(gross_pay):
     return math.ceil(max(calculated, 300))  # Minimum KES 300, rounded up to whole number
 
 def calculate_housing_levy(gross_pay, contract_type='permanent'):
-    """Calculate Housing Levy (1.5% of gross pay, exempted for casual)"""
-    if contract_type == 'casual':
-        return 0  # Casual labourers are exempted from Housing Levy
+    """Calculate Housing Levy (1.5% of gross pay, exempted for contract)"""
+    if contract_type == 'contract':
+        return 0  # Contract employees are exempted from Housing Levy
 
     return round(gross_pay * 0.015, 2)
 
@@ -98,6 +98,8 @@ def test_payroll_scenarios():
         {"name": "Senior Employee", "basic": 75000, "allowances": 28000, "contract": "permanent"},
         {"name": "Management Level", "basic": 120000, "allowances": 40000, "contract": "permanent"},
         {"name": "Executive Level", "basic": 200000, "allowances": 80000, "contract": "permanent"},
+        {"name": "Contract Employee (Low)", "basic": 15000, "allowances": 2000, "contract": "contract"},
+        {"name": "Contract Employee (High)", "basic": 35000, "allowances": 5000, "contract": "contract"},
         {"name": "Casual Labourer (Low)", "basic": 15000, "allowances": 2000, "contract": "casual"},
         {"name": "Casual Labourer (High)", "basic": 35000, "allowances": 5000, "contract": "casual"},
     ]
@@ -113,10 +115,10 @@ def test_payroll_scenarios():
         print(f"Gross Pay:        {format_currency(result['gross_pay'])}")
         print(f"")
 
-        # Show exemptions for casual labourers
+        # Show exemptions for contract employees
         nssf_text = format_currency(result['nssf'])
         housing_text = format_currency(result['housing_levy'])
-        if scenario['contract'] == 'casual':
+        if scenario['contract'] == 'contract':
             nssf_text += " (EXEMPTED)"
             housing_text += " (EXEMPTED)"
 

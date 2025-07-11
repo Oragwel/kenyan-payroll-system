@@ -155,11 +155,11 @@ function updatePreviewElement(id, amount) {
 }
 
 /**
- * Calculate NSSF contribution (exempted for casual labourers)
+ * Calculate NSSF contribution (exempted for contract employees)
  */
 function calculateNSSF(grossPay, contractType = 'permanent') {
-    // Casual labourers are exempted from NSSF
-    if (contractType === 'casual') {
+    // Contract employees are exempted from NSSF
+    if (contractType === 'contract') {
         return 0;
     }
 
@@ -177,11 +177,11 @@ function calculateNHIF(grossPay) {
 }
 
 /**
- * Calculate Housing Levy (exempted for casual labourers)
+ * Calculate Housing Levy (exempted for contract employees)
  */
 function calculateHousingLevy(grossPay, contractType = 'permanent') {
-    // Casual labourers are exempted from Housing Levy
-    if (contractType === 'casual') {
+    // Contract employees are exempted from Housing Levy
+    if (contractType === 'contract') {
         return 0;
     }
 
