@@ -168,7 +168,7 @@ function calculateNSSF(grossPay) {
  */
 function calculateNHIF(grossPay) {
     const calculated = grossPay * 0.0275; // 2.75%
-    return Math.max(calculated, 300); // Minimum KES 300
+    return Math.ceil(Math.max(calculated, 300)); // Minimum KES 300, rounded up to whole number
 }
 
 /**

@@ -37,8 +37,8 @@ function calculateNSSF($grossPay) {
  * Calculate SHIF contribution (2.75% of gross pay with minimum KES 300)
  */
 function calculateSHIF($grossPay) {
-    $calculated = round($grossPay * SHIF_RATE, 2);
-    return max($calculated, SHIF_MINIMUM);
+    $calculated = $grossPay * SHIF_RATE;
+    return ceil(max($calculated, SHIF_MINIMUM));
 }
 
 /**

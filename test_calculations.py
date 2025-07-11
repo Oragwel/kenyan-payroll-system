@@ -34,8 +34,9 @@ def calculate_nssf(gross_pay):
 
 def calculate_shif(gross_pay):
     """Calculate SHIF contribution (2.75% of gross pay with minimum KES 300)"""
+    import math
     calculated = gross_pay * 0.0275  # 2.75% of gross salary
-    return max(calculated, 300)  # Minimum KES 300
+    return math.ceil(max(calculated, 300))  # Minimum KES 300, rounded up to whole number
 
 def calculate_housing_levy(gross_pay):
     """Calculate Housing Levy (1.5% of gross pay)"""
