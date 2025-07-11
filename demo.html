@@ -233,24 +233,9 @@
             }
             paye = Math.max(0, paye - 2400); // Personal relief
             
-            // SHIF (Social Health Insurance Fund) - Updated 2024 rates
-            let nhif = 300; // Minimum SHIF contribution
-            if (gross >= 100000) nhif = 1700;
-            else if (gross >= 90000) nhif = 1600;
-            else if (gross >= 80000) nhif = 1500;
-            else if (gross >= 70000) nhif = 1400;
-            else if (gross >= 60000) nhif = 1300;
-            else if (gross >= 50000) nhif = 1200;
-            else if (gross >= 45000) nhif = 1100;
-            else if (gross >= 40000) nhif = 1000;
-            else if (gross >= 35000) nhif = 950;
-            else if (gross >= 30000) nhif = 900;
-            else if (gross >= 25000) nhif = 850;
-            else if (gross >= 20000) nhif = 750;
-            else if (gross >= 15000) nhif = 600;
-            else if (gross >= 12000) nhif = 500;
-            else if (gross >= 8000) nhif = 400;
-            else nhif = 300; // Minimum for all income levels
+            // SHIF (Social Health Insurance Fund) - 2.75% with minimum KES 300
+            const calculated = gross * 0.0275; // 2.75% of gross salary
+            const nhif = Math.max(calculated, 300); // Minimum KES 300
             
             const housingLevy = gross * 0.015;
             const net = gross - paye - nssf - nhif - housingLevy;

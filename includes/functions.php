@@ -34,18 +34,11 @@ function calculateNSSF($grossPay) {
 }
 
 /**
- * Calculate NHIF/SHIF contribution based on gross pay
+ * Calculate SHIF contribution (2.75% of gross pay with minimum KES 300)
  */
 function calculateSHIF($grossPay) {
-    $rates = SHIF_RATES;
-    
-    foreach ($rates as $bracket) {
-        if ($grossPay >= $bracket['min'] && $grossPay <= $bracket['max']) {
-            return $bracket['amount'];
-        }
-    }
-    
-    return 0;
+    $calculated = round($grossPay * SHIF_RATE, 2);
+    return max($calculated, SHIF_MINIMUM);
 }
 
 /**
