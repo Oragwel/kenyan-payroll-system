@@ -156,7 +156,7 @@ if (isset($_SESSION['employee_id'])) {
 }
 ?>
 
-<!-- Kenyan Flag Theme Dashboard Styles -->
+<!-- Modern Kenyan Dashboard Styles -->
 <style>
 :root {
     /* Kenyan Flag Colors */
@@ -166,113 +166,356 @@ if (isset($_SESSION['employee_id'])) {
     --kenya-green: #006b3f;
     --kenya-light-green: #e8f5e8;
     --kenya-dark-green: #004d2e;
+    --kenya-gold: #ffd700;
 }
 
-.dashboard-header {
+body {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.dashboard-hero {
     background: linear-gradient(135deg, var(--kenya-green) 0%, var(--kenya-dark-green) 100%);
     color: white;
-    padding: 2rem 0;
-    margin: -20px -20px 30px -20px;
+    padding: 3rem 0;
+    margin: -30px -30px 40px -30px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 0 0 30px 30px;
+}
+
+.dashboard-hero::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: -100px;
+    width: 120%;
+    height: 200px;
+    background: linear-gradient(
+        45deg,
+        var(--kenya-black) 0%,
+        var(--kenya-black) 20%,
+        var(--kenya-red) 20%,
+        var(--kenya-red) 35%,
+        var(--kenya-white) 35%,
+        var(--kenya-white) 50%,
+        var(--kenya-red) 50%,
+        var(--kenya-red) 65%,
+        var(--kenya-green) 65%,
+        var(--kenya-green) 100%
+    );
+    transform: rotate(-8deg);
+    opacity: 0.15;
+    z-index: 1;
+}
+
+.dashboard-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -50px;
+    right: -100px;
+    width: 120%;
+    height: 150px;
+    background: linear-gradient(
+        -45deg,
+        transparent 0%,
+        var(--kenya-green) 20%,
+        var(--kenya-white) 40%,
+        var(--kenya-red) 60%,
+        var(--kenya-black) 80%,
+        transparent 100%
+    );
+    transform: rotate(12deg);
+    opacity: 0.1;
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.modern-card {
+    background: white;
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    position: relative;
+}
+
+.modern-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--kenya-black), var(--kenya-red), var(--kenya-white), var(--kenya-green));
+}
+
+.modern-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.stat-card {
+    padding: 2rem;
+    text-align: center;
     position: relative;
     overflow: hidden;
 }
 
-.dashboard-header::before {
+.stat-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(
-        45deg,
-        transparent 0%,
-        var(--kenya-red) 25%,
-        var(--kenya-white) 50%,
-        var(--kenya-black) 75%,
-        transparent 100%
-    );
-    opacity: 0.1;
+    opacity: 0.05;
+    background-size: 100px 100px;
+    background-image:
+        radial-gradient(circle at 25px 25px, rgba(255,255,255,0.3) 2px, transparent 2px),
+        radial-gradient(circle at 75px 75px, rgba(255,255,255,0.3) 2px, transparent 2px);
 }
 
-.kenyan-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    overflow: hidden;
+.stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(45deg, currentColor, rgba(255,255,255,0.8));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.stat-sublabel {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.stat-icon {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-size: 3rem;
+    opacity: 0.2;
+}
+
+.kenya-green-card {
+    background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green));
+    color: white;
+}
+
+.kenya-red-card {
+    background: linear-gradient(135deg, var(--kenya-red), #a00e1f);
+    color: white;
+}
+
+.kenya-black-card {
+    background: linear-gradient(135deg, var(--kenya-black), #333333);
+    color: white;
+}
+
+.kenya-white-card {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    color: var(--kenya-black);
+    border: 3px solid var(--kenya-green);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--kenya-dark-green);
+    margin-bottom: 1.5rem;
     position: relative;
+    padding-left: 1rem;
 }
 
-.kenyan-card::before {
+.section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--kenya-green), var(--kenya-red));
+    border-radius: 2px;
+}
+
+.deduction-item {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.deduction-item::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--kenya-black), var(--kenya-red), var(--kenya-white), var(--kenya-green));
+    height: 3px;
+    transition: all 0.3s ease;
 }
 
-.kenyan-card:hover {
+.deduction-item:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
 }
 
-.stat-card-green {
-    background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green));
-    color: white;
+.deduction-paye::before { background: var(--kenya-green); }
+.deduction-nssf::before { background: var(--kenya-red); }
+.deduction-shif::before { background: var(--kenya-black); }
+.deduction-housing::before { background: var(--kenya-green); }
+
+.progress-modern {
+    height: 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin: 0.5rem 0;
 }
 
-.stat-card-red {
-    background: linear-gradient(135deg, var(--kenya-red), #a00e1f);
-    color: white;
+.progress-bar-modern {
+    height: 100%;
+    border-radius: 10px;
+    transition: all 0.6s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.stat-card-black {
-    background: linear-gradient(135deg, var(--kenya-black), #333333);
-    color: white;
+.progress-bar-modern::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 50%, transparent 50%, transparent 75%, rgba(255,255,255,0.3) 75%);
+    background-size: 20px 20px;
+    animation: progress-animation 1s linear infinite;
 }
 
-.stat-card-white {
-    background: linear-gradient(135deg, #f8f9fa, var(--kenya-white));
-    color: var(--kenya-black);
+@keyframes progress-animation {
+    0% { transform: translateX(-20px); }
+    100% { transform: translateX(20px); }
+}
+
+.quick-action-btn {
+    background: white;
     border: 2px solid var(--kenya-green);
+    color: var(--kenya-green);
+    padding: 1rem 1.5rem;
+    border-radius: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    margin-bottom: 1rem;
 }
 
-.kenyan-badge {
-    background: linear-gradient(45deg, var(--kenya-green), var(--kenya-red));
+.quick-action-btn:hover {
+    background: var(--kenya-green);
     color: white;
-    border: none;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,107,63,0.3);
 }
 
-.alert-kenyan {
-    border-left: 4px solid var(--kenya-green);
-    background: var(--kenya-light-green);
-    border-radius: 8px;
+.quick-action-btn.primary {
+    background: var(--kenya-green);
+    color: white;
+    border-color: var(--kenya-green);
+}
+
+.quick-action-btn.primary:hover {
+    background: var(--kenya-dark-green);
+    border-color: var(--kenya-dark-green);
+}
+
+.alert-modern {
+    border: none;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-left: 5px solid;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.alert-success { border-left-color: var(--kenya-green); }
+.alert-warning { border-left-color: var(--kenya-gold); }
+.alert-danger { border-left-color: var(--kenya-red); }
+.alert-info { border-left-color: var(--kenya-black); }
+
+.kenyan-pride {
+    background: linear-gradient(90deg, var(--kenya-black) 0%, var(--kenya-red) 25%, var(--kenya-white) 50%, var(--kenya-green) 75%, var(--kenya-dark-green) 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    .dashboard-hero {
+        margin: -20px -20px 30px -20px;
+        padding: 2rem 0;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+
+    .modern-card {
+        margin-bottom: 1.5rem;
+    }
 }
 </style>
 
 <div class="container-fluid">
-    <!-- Kenyan-themed Header -->
-    <div class="dashboard-header">
-        <div class="container-fluid position-relative" style="z-index: 2;">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="mb-2">
-                        <i class="fas fa-tachometer-alt me-3"></i>
-                        <span style="color: var(--kenya-white);">Kenyan Payroll</span>
-                        <span style="color: var(--kenya-red);">Dashboard</span>
-                    </h1>
-                    <p class="mb-0 opacity-75">
-                        🇰🇪 Comprehensive payroll management for Kenyan businesses
-                    </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-20 rounded p-3">
-                        <h5 class="mb-1">Welcome back!</h5>
-                        <p class="mb-0"><strong><?php echo $_SESSION['username']; ?></strong></p>
-                        <small class="opacity-75"><?php echo ucfirst($_SESSION['user_role']); ?> • <?php echo date('l, F j, Y'); ?></small>
+    <!-- Modern Kenyan Hero Section -->
+    <div class="dashboard-hero">
+        <div class="hero-content">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h1 class="display-4 fw-bold mb-3">
+                            <i class="fas fa-chart-line me-3"></i>
+                            <span>Kenyan Payroll</span>
+                            <span style="color: var(--kenya-gold);">Dashboard</span>
+                        </h1>
+                        <p class="lead mb-0 opacity-90">
+                            🇰🇪 Professional payroll management system built for Kenyan businesses
+                        </p>
+                        <small class="opacity-75">
+                            Compliant with KRA, NSSF, SHIF & Housing Levy regulations
+                        </small>
+                    </div>
+                    <div class="col-lg-4 text-end">
+                        <div class="bg-white bg-opacity-15 rounded-3 p-4 backdrop-blur">
+                            <h4 class="mb-2">Welcome back!</h4>
+                            <h5 class="mb-1 text-warning"><?php echo $_SESSION['username']; ?></h5>
+                            <p class="mb-1 opacity-75"><?php echo ucfirst($_SESSION['user_role']); ?></p>
+                            <small class="opacity-60"><?php echo date('l, F j, Y'); ?></small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -280,191 +523,221 @@ if (isset($_SESSION['employee_id'])) {
     </div>
 
     <?php if (hasPermission('hr')): ?>
-        <!-- System Alerts -->
+        <!-- Modern System Alerts -->
         <?php if (!empty($alerts)): ?>
-            <div class="row mb-4">
+            <div class="row mb-5">
                 <div class="col-12">
                     <?php foreach ($alerts as $alert): ?>
-                        <div class="alert alert-<?php echo $alert['type']; ?> alert-kenyan alert-dismissible fade show">
-                            <i class="<?php echo $alert['icon']; ?> me-2"></i>
-                            <?php echo $alert['message']; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="alert-modern alert-<?php echo $alert['type']; ?> alert-dismissible fade show">
+                            <div class="d-flex align-items-center">
+                                <i class="<?php echo $alert['icon']; ?> fa-lg me-3"></i>
+                                <div class="flex-grow-1">
+                                    <?php echo $alert['message']; ?>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
             </div>
         <?php endif; ?>
 
-        <!-- Enhanced KPI Cards with Kenyan Theme -->
-        <div class="row mb-4">
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="kenyan-card stat-card-green">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="mb-1"><?php echo number_format($stats['active_employees'] ?? 0); ?></h3>
-                                <p class="mb-0 opacity-75">Active Employees</p>
-                                <small class="opacity-50">
-                                    <?php echo number_format($stats['total_employees'] ?? 0); ?> total
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <i class="fas fa-users fa-3x opacity-50"></i>
-                            </div>
-                        </div>
+        <!-- Modern KPI Cards -->
+        <div class="row mb-5">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card kenya-green-card stat-card">
+                    <i class="fas fa-users stat-icon"></i>
+                    <div class="stat-number"><?php echo number_format($stats['active_employees'] ?? 0); ?></div>
+                    <div class="stat-label">Active Employees</div>
+                    <div class="stat-sublabel">
+                        <?php echo number_format($stats['total_employees'] ?? 0); ?> total employees
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="kenyan-card stat-card-red">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="mb-1"><?php echo formatCurrency($stats['monthly_payroll'] ?? 0); ?></h3>
-                                <p class="mb-0 opacity-75">Monthly Payroll</p>
-                                <small class="opacity-50">
-                                    <?php echo number_format($stats['payroll_records'] ?? 0); ?> employees paid
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
-                            </div>
-                        </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card kenya-red-card stat-card">
+                    <i class="fas fa-money-bill-wave stat-icon"></i>
+                    <div class="stat-number"><?php echo formatCurrency($stats['monthly_payroll'] ?? 0); ?></div>
+                    <div class="stat-label">Monthly Payroll</div>
+                    <div class="stat-sublabel">
+                        <?php echo number_format($stats['payroll_records'] ?? 0); ?> employees paid
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="kenyan-card stat-card-black">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="mb-1"><?php echo number_format($stats['pending_leaves'] ?? 0); ?></h3>
-                                <p class="mb-0 opacity-75">Pending Leaves</p>
-                                <small class="opacity-50">
-                                    <?php echo number_format($stats['total_leave_applications'] ?? 0); ?> total applications
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <i class="fas fa-calendar-times fa-3x opacity-50"></i>
-                            </div>
-                        </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card kenya-black-card stat-card">
+                    <i class="fas fa-calendar-times stat-icon"></i>
+                    <div class="stat-number"><?php echo number_format($stats['pending_leaves'] ?? 0); ?></div>
+                    <div class="stat-label">Pending Leaves</div>
+                    <div class="stat-sublabel">
+                        <?php echo number_format($stats['total_leave_applications'] ?? 0); ?> total applications
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="kenyan-card stat-card-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="mb-1"><?php echo formatCurrency($stats['total_paye'] ?? 0); ?></h3>
-                                <p class="mb-0">PAYE Tax (Monthly)</p>
-                                <small class="text-muted">
-                                    Statutory compliance
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <i class="fas fa-receipt fa-3x text-muted"></i>
-                            </div>
-                        </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card kenya-white-card stat-card">
+                    <i class="fas fa-receipt stat-icon"></i>
+                    <div class="stat-number"><?php echo formatCurrency($stats['total_paye'] ?? 0); ?></div>
+                    <div class="stat-label">PAYE Tax</div>
+                    <div class="stat-sublabel">
+                        Monthly statutory compliance
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Statutory Deductions Overview -->
-        <div class="row mb-4">
-            <div class="col-lg-8">
-                <div class="kenyan-card">
-                    <div class="card-header bg-transparent">
-                        <h5 class="mb-0">
-                            <i class="fas fa-chart-bar text-success me-2"></i>
-                            Monthly Statutory Deductions Breakdown
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3 text-center">
-                                <div class="p-3 rounded" style="background: var(--kenya-light-green);">
-                                    <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
-                                    <h6>PAYE Tax</h6>
-                                    <h4 class="text-success"><?php echo formatCurrency($stats['total_paye'] ?? 0); ?></h4>
-                                </div>
+        <!-- Statutory Deductions Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="section-title">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Monthly Statutory Deductions
+                </h2>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card deduction-item deduction-paye">
+                    <i class="fas fa-shield-alt fa-3x mb-3" style="color: var(--kenya-green);"></i>
+                    <h3 class="fw-bold" style="color: var(--kenya-green);"><?php echo formatCurrency($stats['total_paye'] ?? 0); ?></h3>
+                    <h6 class="text-muted mb-2">PAYE Tax</h6>
+                    <small class="text-muted">Pay As You Earn</small>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card deduction-item deduction-nssf">
+                    <i class="fas fa-piggy-bank fa-3x mb-3" style="color: var(--kenya-red);"></i>
+                    <h3 class="fw-bold" style="color: var(--kenya-red);"><?php echo formatCurrency($stats['total_nssf'] ?? 0); ?></h3>
+                    <h6 class="text-muted mb-2">NSSF</h6>
+                    <small class="text-muted">National Social Security Fund</small>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card deduction-item deduction-shif">
+                    <i class="fas fa-heartbeat fa-3x mb-3" style="color: var(--kenya-black);"></i>
+                    <h3 class="fw-bold" style="color: var(--kenya-black);"><?php echo formatCurrency($stats['total_shif'] ?? 0); ?></h3>
+                    <h6 class="text-muted mb-2">SHIF</h6>
+                    <small class="text-muted">Social Health Insurance Fund</small>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="modern-card deduction-item deduction-housing">
+                    <i class="fas fa-home fa-3x mb-3" style="color: var(--kenya-green);"></i>
+                    <h3 class="fw-bold" style="color: var(--kenya-green);"><?php echo formatCurrency($stats['total_housing_levy'] ?? 0); ?></h3>
+                    <h6 class="text-muted mb-2">Housing Levy</h6>
+                    <small class="text-muted">Affordable Housing Program</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Distribution -->
+        <div class="row mb-5">
+            <div class="col-lg-6">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h3 class="section-title">
+                            <i class="fas fa-users-cog me-2"></i>
+                            Employee Distribution
+                        </h3>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold">Permanent Employees</span>
+                                <span class="badge rounded-pill" style="background: var(--kenya-green);">
+                                    <?php echo number_format($stats['permanent_employees'] ?? 0); ?>
+                                </span>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="p-3 rounded" style="background: rgba(206,17,38,0.1);">
-                                    <i class="fas fa-piggy-bank fa-2x me-2" style="color: var(--kenya-red);"></i>
-                                    <h6>NSSF</h6>
-                                    <h4 style="color: var(--kenya-red);"><?php echo formatCurrency($stats['total_nssf'] ?? 0); ?></h4>
-                                </div>
+                            <div class="progress-modern">
+                                <div class="progress-bar-modern" style="background: var(--kenya-green); width: <?php echo $stats['total_employees'] > 0 ? ($stats['permanent_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="p-3 rounded" style="background: rgba(0,0,0,0.05);">
-                                    <i class="fas fa-heartbeat fa-2x text-dark mb-2"></i>
-                                    <h6>SHIF</h6>
-                                    <h4 class="text-dark"><?php echo formatCurrency($stats['total_shif'] ?? 0); ?></h4>
-                                </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold">Contract Employees</span>
+                                <span class="badge rounded-pill" style="background: var(--kenya-red);">
+                                    <?php echo number_format($stats['contract_employees'] ?? 0); ?>
+                                </span>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="p-3 rounded" style="background: rgba(0,107,63,0.1);">
-                                    <i class="fas fa-home fa-2x" style="color: var(--kenya-green);"></i>
-                                    <h6>Housing Levy</h6>
-                                    <h4 style="color: var(--kenya-green);"><?php echo formatCurrency($stats['total_housing_levy'] ?? 0); ?></h4>
-                                </div>
+                            <div class="progress-modern">
+                                <div class="progress-bar-modern" style="background: var(--kenya-red); width: <?php echo $stats['total_employees'] > 0 ? ($stats['contract_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold">Casual Labourers</span>
+                                <span class="badge rounded-pill" style="background: var(--kenya-black);">
+                                    <?php echo number_format($stats['casual_employees'] ?? 0); ?>
+                                </span>
+                            </div>
+                            <div class="progress-modern">
+                                <div class="progress-bar-modern" style="background: var(--kenya-black); width: <?php echo $stats['total_employees'] > 0 ? ($stats['casual_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold">Interns</span>
+                                <span class="badge rounded-pill bg-secondary">
+                                    <?php echo number_format($stats['intern_employees'] ?? 0); ?>
+                                </span>
+                            </div>
+                            <div class="progress-modern">
+                                <div class="progress-bar-modern bg-secondary" style="width: <?php echo $stats['total_employees'] > 0 ? ($stats['intern_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-4">
-                <div class="kenyan-card">
-                    <div class="card-header bg-transparent">
-                        <h5 class="mb-0">
-                            <i class="fas fa-users-cog text-primary me-2"></i>
-                            Employee Distribution
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span>Permanent</span>
-                                <span class="kenyan-badge badge"><?php echo number_format($stats['permanent_employees'] ?? 0); ?></span>
+            <!-- Quick Actions -->
+            <div class="col-lg-6">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h3 class="section-title">
+                            <i class="fas fa-bolt me-2"></i>
+                            Quick Actions
+                        </h3>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <a href="index.php?page=employees&action=add" class="quick-action-btn">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Add Employee
+                                </a>
                             </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" style="background: var(--kenya-green); width: <?php echo $stats['total_employees'] > 0 ? ($stats['permanent_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
+                            <div class="col-md-6 mb-3">
+                                <a href="index.php?page=payroll&action=create" class="quick-action-btn primary">
+                                    <i class="fas fa-calculator me-2"></i>
+                                    Process Payroll
+                                </a>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <a href="index.php?page=reports" class="quick-action-btn">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    Generate Reports
+                                </a>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <a href="index.php?page=leaves" class="quick-action-btn">
+                                    <i class="fas fa-calendar-check me-2"></i>
+                                    Manage Leaves
+                                </a>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span>Contract</span>
-                                <span class="kenyan-badge badge"><?php echo number_format($stats['contract_employees'] ?? 0); ?></span>
-                            </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" style="background: var(--kenya-red); width: <?php echo $stats['total_employees'] > 0 ? ($stats['contract_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span>Casual</span>
-                                <span class="kenyan-badge badge"><?php echo number_format($stats['casual_employees'] ?? 0); ?></span>
-                            </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" style="background: var(--kenya-black); width: <?php echo $stats['total_employees'] > 0 ? ($stats['casual_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-0">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span>Interns</span>
-                                <span class="kenyan-badge badge"><?php echo number_format($stats['intern_employees'] ?? 0); ?></span>
-                            </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-secondary" style="width: <?php echo $stats['total_employees'] > 0 ? ($stats['intern_employees'] / $stats['total_employees']) * 100 : 0; ?>%;"></div>
-                            </div>
+                        <!-- Kenyan Pride Section -->
+                        <div class="kenyan-pride">
+                            <i class="fas fa-shield-check me-2"></i>
+                            <strong>🇰🇪 Proudly Kenyan</strong><br>
+                            <small>Fully compliant with KRA, NSSF, SHIF & Housing Levy regulations</small>
                         </div>
                     </div>
                 </div>
