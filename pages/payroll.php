@@ -23,6 +23,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
         $message = 'Please fill in all required fields';
         $messageType = 'danger';
     } else {
+        // Validate dates
+        $today = date('Y-m-d');
+        $startDateObj = new DateTime($startDate);
+        $endDateObj = new DateTime($endDate);
+        $payDateObj = new DateTime($payDate);
+        $todayObj = new DateTime($today);
+
+        // Check if start date is in the future
+        if ($startDateObj > $todayObj) {
+            $message = 'Payroll period start date cannot be in the future. Please select a current or past date.';
+            $messageType = 'danger';
+        }
+        // Check if end date is in the future
+        elseif ($endDateObj > $todayObj) {
+            $message = 'Payroll period end date cannot be in the future. Please select a current or past date.';
+            $messageType = 'danger';
+        }
+        // Check if pay date is too far in the future (allow up to 30 days from today)
+        elseif ($payDateObj > $todayObj->modify('+30 days')) {
+            $message = 'Pay date cannot be more than 30 days in the future.';
+            $messageType = 'danger';
+        }
+        // Check if start date is after end date
+        elseif ($startDateObj > $endDateObj) {
+            $message = 'Period start date cannot be after end date.';
+            $messageType = 'danger';
+        }
+        // Check if pay date is before end date
+        elseif ($payDateObj < $endDateObj) {
+            $message = 'Pay date cannot be before the period end date.';
+            $messageType = 'danger';
+        }
+        // Check for overlapping periods
+        else {
+            $stmt = $db->prepare("
+                SELECT COUNT(*) as count FROM payroll_periods
+                WHERE company_id = ?
+                AND (
+                    (start_date <= ? AND end_date >= ?) OR
+                    (start_date <= ? AND end_date >= ?) OR
+                    (start_date >= ? AND end_date <= ?)
+                )
+            ");
+            $stmt->execute([
+                $_SESSION['company_id'],
+                $startDate, $startDate,  // Check if new start date falls within existing period
+                $endDate, $endDate,      // Check if new end date falls within existing period
+                $startDate, $endDate     // Check if new period encompasses existing period
+            ]);
+            $overlap = $stmt->fetch();
+
+            if ($overlap['count'] > 0) {
+                $message = 'This payroll period overlaps with an existing period. Please check the dates.';
+                $messageType = 'danger';
+            }
+        }
+    }
+
+    // Only proceed if no validation errors
+    if (empty($message)) {
         try {
             $db->beginTransaction();
             
@@ -291,6 +351,16 @@ if ($action === 'view' && isset($_GET['id'])) {
                             <li>Once processed, payroll records cannot be modified</li>
                         </ul>
                     </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Date Validation Rules</h6>
+                        <ul class="mb-0">
+                            <li><strong>Period Dates:</strong> Start and end dates cannot be in the future</li>
+                            <li><strong>Pay Date:</strong> Must be today or up to 30 days in the future</li>
+                            <li><strong>Date Logic:</strong> End date must be after start date, pay date must be after end date</li>
+                            <li><strong>Overlapping Periods:</strong> New periods cannot overlap with existing ones</li>
+                        </ul>
+                    </div>
                     
                     <div class="d-flex justify-content-end">
                         <a href="index.php?page=payroll" class="btn btn-secondary me-2">Cancel</a>
@@ -380,3 +450,251 @@ if ($action === 'view' && isset($_GET['id'])) {
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get form elements
+    const form = document.querySelector('.needs-validation');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const payDateInput = document.getElementById('pay_date');
+
+    if (!form || !startDateInput || !endDateInput || !payDateInput) {
+        return; // Exit if form elements not found
+    }
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+
+    // Set maximum date for start and end date (today)
+    startDateInput.setAttribute('max', today);
+    endDateInput.setAttribute('max', today);
+
+    // Set minimum date for pay date (today) and maximum (30 days from today)
+    const maxPayDate = new Date();
+    maxPayDate.setDate(maxPayDate.getDate() + 30);
+    const maxPayDateStr = maxPayDate.toISOString().split('T')[0];
+
+    payDateInput.setAttribute('min', today);
+    payDateInput.setAttribute('max', maxPayDateStr);
+
+    // Real-time validation functions
+    function validateStartDate() {
+        const startDate = startDateInput.value;
+        const errorDiv = document.getElementById('start_date_error') || createErrorDiv('start_date_error');
+
+        if (startDate > today) {
+            startDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'Start date cannot be in the future.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else {
+            startDateInput.classList.remove('is-invalid');
+            startDateInput.classList.add('is-valid');
+            errorDiv.style.display = 'none';
+            return true;
+        }
+    }
+
+    function validateEndDate() {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const errorDiv = document.getElementById('end_date_error') || createErrorDiv('end_date_error');
+
+        if (endDate > today) {
+            endDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'End date cannot be in the future.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else if (startDate && endDate < startDate) {
+            endDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'End date cannot be before start date.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else {
+            endDateInput.classList.remove('is-invalid');
+            endDateInput.classList.add('is-valid');
+            errorDiv.style.display = 'none';
+            return true;
+        }
+    }
+
+    function validatePayDate() {
+        const endDate = endDateInput.value;
+        const payDate = payDateInput.value;
+        const errorDiv = document.getElementById('pay_date_error') || createErrorDiv('pay_date_error');
+
+        if (payDate < today) {
+            payDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'Pay date cannot be in the past.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else if (payDate > maxPayDateStr) {
+            payDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'Pay date cannot be more than 30 days in the future.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else if (endDate && payDate < endDate) {
+            payDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'Pay date cannot be before period end date.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else {
+            payDateInput.classList.remove('is-invalid');
+            payDateInput.classList.add('is-valid');
+            errorDiv.style.display = 'none';
+            return true;
+        }
+    }
+
+    function createErrorDiv(id) {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = id;
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.style.display = 'none';
+
+        // Insert after the corresponding input
+        const input = document.getElementById(id.replace('_error', ''));
+        if (input && input.parentNode) {
+            input.parentNode.appendChild(errorDiv);
+        }
+
+        return errorDiv;
+    }
+
+    // Add event listeners for real-time validation
+    startDateInput.addEventListener('change', function() {
+        validateStartDate();
+        if (endDateInput.value) validateEndDate();
+        if (payDateInput.value) validatePayDate();
+    });
+
+    endDateInput.addEventListener('change', function() {
+        validateEndDate();
+        if (payDateInput.value) validatePayDate();
+    });
+
+    payDateInput.addEventListener('change', validatePayDate);
+
+    // Form submission validation
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const isStartDateValid = validateStartDate();
+        const isEndDateValid = validateEndDate();
+        const isPayDateValid = validatePayDate();
+
+        if (isStartDateValid && isEndDateValid && isPayDateValid) {
+            // Show confirmation dialog
+            const startDate = new Date(startDateInput.value).toLocaleDateString();
+            const endDate = new Date(endDateInput.value).toLocaleDateString();
+            const payDate = new Date(payDateInput.value).toLocaleDateString();
+
+            const confirmMessage = `Are you sure you want to process payroll for the period ${startDate} to ${endDate}?\n\nPay Date: ${payDate}\n\nThis action cannot be undone.`;
+
+            if (confirm(confirmMessage)) {
+                // Disable submit button to prevent double submission
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                }
+
+                form.submit();
+            }
+        } else {
+            // Show error message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Validation Error:</strong> Please correct the highlighted fields before submitting.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            form.insertBefore(alertDiv, form.firstChild);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        form.classList.add('was-validated');
+    });
+
+    // Auto-generate period name based on dates
+    function generatePeriodName() {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const periodNameInput = document.getElementById('period_name');
+
+        if (startDate && endDate && !periodNameInput.value) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+                // Same month and year
+                periodNameInput.value = `${monthNames[start.getMonth()]} ${start.getFullYear()}`;
+            } else {
+                // Different months or years
+                periodNameInput.value = `${monthNames[start.getMonth()]} ${start.getFullYear()} - ${monthNames[end.getMonth()]} ${end.getFullYear()}`;
+            }
+        }
+    }
+
+    startDateInput.addEventListener('change', generatePeriodName);
+    endDateInput.addEventListener('change', generatePeriodName);
+});
+</script>
+
+<style>
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.is-valid {
+    border-color: #198754;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+.form-control:focus {
+    border-color: #006b3f;
+    box-shadow: 0 0 0 0.2rem rgba(0, 107, 63, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green));
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--kenya-dark-green), var(--kenya-green));
+    transform: translateY(-1px);
+}
+
+:root {
+    --kenya-green: #006b3f;
+    --kenya-dark-green: #004d2e;
+    --kenya-red: #ce1126;
+}
+</style>
