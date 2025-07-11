@@ -38,6 +38,26 @@
                 <a href="index.php?page=cms" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'cms' ? 'active' : ''; ?>">
                     <i class="fas fa-edit"></i> Content Management (CMS)
                 </a>
+
+                <a href="index.php?page=reports" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'reports' ? 'active' : ''; ?>">
+                    <i class="fas fa-chart-bar"></i> Reports & Analytics
+                </a>
+
+                <a href="index.php?page=payslips" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'payslips' ? 'active' : ''; ?>">
+                    <i class="fas fa-receipt"></i> Payslips
+                </a>
+
+                <a href="index.php?page=departments" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'departments' ? 'active' : ''; ?>">
+                    <i class="fas fa-building"></i> Departments
+                </a>
+
+                <a href="index.php?page=positions" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'positions' ? 'active' : ''; ?>">
+                    <i class="fas fa-briefcase"></i> Job Positions
+                </a>
+
+                <a href="index.php?page=settings" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'settings' ? 'active' : ''; ?>">
+                    <i class="fas fa-cogs"></i> System Settings
+                </a>
             <?php endif; ?>
 
             <?php if (in_array($_SESSION['user_role'], ['admin', 'hr'])): ?>
@@ -56,6 +76,14 @@
                 
                 <a href="index.php?page=positions" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'positions' ? 'active' : ''; ?>">
                     <i class="fas fa-briefcase"></i> Job Positions
+                </a>
+
+                <a href="index.php?page=leaves" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'leaves' ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i> Leave Management
+                </a>
+
+                <a href="index.php?page=attendance" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'attendance' ? 'active' : ''; ?>">
+                    <i class="fas fa-clock"></i> Attendance
                 </a>
                 
                 <div class="list-group-item bg-secondary text-white">
@@ -133,6 +161,14 @@
                 <a href="index.php?page=payslips" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'payslips' ? 'active' : ''; ?>">
                     <i class="fas fa-receipt"></i> My Payslips
                 </a>
+
+                <a href="index.php?page=leaves" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'leaves' ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i> My Leave Applications
+                </a>
+
+                <a href="index.php?page=attendance" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'attendance' ? 'active' : ''; ?>">
+                    <i class="fas fa-clock"></i> My Attendance
+                </a>
                 
                 <a href="index.php?page=leaves" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'leaves' ? 'active' : ''; ?>">
                     <i class="fas fa-calendar-alt"></i> My Leaves
@@ -174,6 +210,10 @@
             <div class="list-group-item bg-secondary text-white">
                 <small><strong>GENERAL</strong></small>
             </div>
+
+            <a href="index.php?page=profile" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'profile' ? 'active' : ''; ?>">
+                <i class="fas fa-user"></i> My Profile
+            </a>
 
             <a href="index.php?page=help" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'help' ? 'active' : ''; ?>">
                 <i class="fas fa-question-circle"></i> Help & Support
