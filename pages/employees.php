@@ -37,6 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $departmentId = $_POST['department_id'] ?: null;
         $positionId = $_POST['position_id'] ?: null;
         $contractType = $_POST['contract_type'];
+        $bankCode = sanitizeInput($_POST['bank_code']);
+        $bankName = sanitizeInput($_POST['bank_name']);
+        $bankBranch = sanitizeInput($_POST['bank_branch']);
+        $accountNumber = sanitizeInput($_POST['account_number']);
         
         if (empty($firstName) || empty($lastName) || empty($idNumber) || empty($hireDate) || empty($basicSalary)) {
             $message = 'Please fill in all required fields';
@@ -55,16 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $stmt = $db->prepare("
                         INSERT INTO employees (
-                            company_id, employee_number, first_name, middle_name, last_name, 
-                            id_number, email, phone, hire_date, basic_salary, department_id, 
-                            position_id, contract_type
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            company_id, employee_number, first_name, middle_name, last_name,
+                            id_number, email, phone, hire_date, basic_salary, department_id,
+                            position_id, contract_type, bank_code, bank_name, bank_branch, account_number
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     
                     if ($stmt->execute([
-                        $_SESSION['company_id'], $employeeNumber, $firstName, $middleName, 
-                        $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary, 
-                        $departmentId, $positionId, $contractType
+                        $_SESSION['company_id'], $employeeNumber, $firstName, $middleName,
+                        $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary,
+                        $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
                     ])) {
                         $message = 'Employee added successfully';
                         $messageType = 'success';
@@ -77,16 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Update employee
                 $stmt = $db->prepare("
-                    UPDATE employees SET 
-                        first_name = ?, middle_name = ?, last_name = ?, id_number = ?, 
-                        email = ?, phone = ?, hire_date = ?, basic_salary = ?, 
-                        department_id = ?, position_id = ?, contract_type = ?
+                    UPDATE employees SET
+                        first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
+                        email = ?, phone = ?, hire_date = ?, basic_salary = ?,
+                        department_id = ?, position_id = ?, contract_type = ?,
+                        bank_code = ?, bank_name = ?, bank_branch = ?, account_number = ?
                     WHERE id = ? AND company_id = ?
                 ");
                 
                 if ($stmt->execute([
-                    $firstName, $middleName, $lastName, $idNumber, $email, $phone, 
+                    $firstName, $middleName, $lastName, $idNumber, $email, $phone,
                     $hireDate, $basicSalary, $departmentId, $positionId, $contractType,
+                    $bankCode, $bankName, $bankBranch, $accountNumber,
                     $employeeId, $_SESSION['company_id']
                 ])) {
                     $message = 'Employee updated successfully';
@@ -165,7 +171,8 @@ function handleBulkImport($file) {
     $expectedHeaders = [
         'first_name', 'middle_name', 'last_name', 'id_number', 'email',
         'phone', 'hire_date', 'basic_salary', 'department_name',
-        'position_title', 'contract_type', 'kra_pin', 'nssf_number', 'nhif_number'
+        'position_title', 'contract_type', 'kra_pin', 'nssf_number', 'nhif_number',
+        'bank_code', 'bank_name', 'bank_branch', 'account_number'
     ];
 
     // Normalize headers (remove BOM and trim)
@@ -306,8 +313,9 @@ function handleBulkImport($file) {
                 INSERT INTO employees (
                     company_id, employee_number, first_name, middle_name, last_name,
                     id_number, email, phone, hire_date, basic_salary, department_id,
-                    position_id, contract_type, kra_pin, nssf_number, nhif_number
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    position_id, contract_type, kra_pin, nssf_number, nhif_number,
+                    bank_code, bank_name, bank_branch, account_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
@@ -326,7 +334,11 @@ function handleBulkImport($file) {
                 $contractType,
                 $employee['kra_pin'],
                 $employee['nssf_number'],
-                $employee['nhif_number']
+                $employee['nhif_number'],
+                $employee['bank_code'],
+                $employee['bank_name'],
+                $employee['bank_branch'],
+                $employee['account_number']
             ]);
 
             $successCount++;
@@ -604,8 +616,110 @@ function handleBulkImport($file) {
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="basic_salary" class="form-label">Basic Salary (KES) *</label>
-                                <input type="number" class="form-control currency-input" id="basic_salary" name="basic_salary" 
+                                <input type="number" class="form-control currency-input" id="basic_salary" name="basic_salary"
                                        value="<?php echo $employee['basic_salary'] ?? ''; ?>" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banking Information Section -->
+                    <div class="card mt-4">
+                        <div class="card-header" style="background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green)); color: white;">
+                            <h6 class="mb-0"><i class="fas fa-university"></i> Banking Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="bank_code" class="form-label">Bank *</label>
+                                        <select class="form-select" id="bank_code" name="bank_code" onchange="updateBankName()">
+                                            <option value="">Select Bank</option>
+                                            <option value="01" <?php echo ($employee['bank_code'] ?? '') === '01' ? 'selected' : ''; ?>>Kenya Commercial Bank (KCB)</option>
+                                            <option value="02" <?php echo ($employee['bank_code'] ?? '') === '02' ? 'selected' : ''; ?>>Standard Chartered Bank</option>
+                                            <option value="03" <?php echo ($employee['bank_code'] ?? '') === '03' ? 'selected' : ''; ?>>Barclays Bank of Kenya</option>
+                                            <option value="04" <?php echo ($employee['bank_code'] ?? '') === '04' ? 'selected' : ''; ?>>Bank of Baroda</option>
+                                            <option value="05" <?php echo ($employee['bank_code'] ?? '') === '05' ? 'selected' : ''; ?>>Bank of India</option>
+                                            <option value="06" <?php echo ($employee['bank_code'] ?? '') === '06' ? 'selected' : ''; ?>>Bank of Africa Kenya</option>
+                                            <option value="07" <?php echo ($employee['bank_code'] ?? '') === '07' ? 'selected' : ''; ?>>Prime Bank</option>
+                                            <option value="08" <?php echo ($employee['bank_code'] ?? '') === '08' ? 'selected' : ''; ?>>Imperial Bank</option>
+                                            <option value="09" <?php echo ($employee['bank_code'] ?? '') === '09' ? 'selected' : ''; ?>>Citibank</option>
+                                            <option value="10" <?php echo ($employee['bank_code'] ?? '') === '10' ? 'selected' : ''; ?>>Habib Bank AG Zurich</option>
+                                            <option value="11" <?php echo ($employee['bank_code'] ?? '') === '11' ? 'selected' : ''; ?>>Equity Bank</option>
+                                            <option value="12" <?php echo ($employee['bank_code'] ?? '') === '12' ? 'selected' : ''; ?>>Cooperative Bank of Kenya</option>
+                                            <option value="13" <?php echo ($employee['bank_code'] ?? '') === '13' ? 'selected' : ''; ?>>National Bank of Kenya</option>
+                                            <option value="14" <?php echo ($employee['bank_code'] ?? '') === '14' ? 'selected' : ''; ?>>Diamond Trust Bank</option>
+                                            <option value="15" <?php echo ($employee['bank_code'] ?? '') === '15' ? 'selected' : ''; ?>>Consolidated Bank of Kenya</option>
+                                            <option value="16" <?php echo ($employee['bank_code'] ?? '') === '16' ? 'selected' : ''; ?>>Credit Bank</option>
+                                            <option value="17" <?php echo ($employee['bank_code'] ?? '') === '17' ? 'selected' : ''; ?>>African Banking Corporation</option>
+                                            <option value="18" <?php echo ($employee['bank_code'] ?? '') === '18' ? 'selected' : ''; ?>>Trans National Bank</option>
+                                            <option value="19" <?php echo ($employee['bank_code'] ?? '') === '19' ? 'selected' : ''; ?>>CFC Stanbic Bank</option>
+                                            <option value="20" <?php echo ($employee['bank_code'] ?? '') === '20' ? 'selected' : ''; ?>>I&M Bank</option>
+                                            <option value="21" <?php echo ($employee['bank_code'] ?? '') === '21' ? 'selected' : ''; ?>>Fidelity Commercial Bank</option>
+                                            <option value="22" <?php echo ($employee['bank_code'] ?? '') === '22' ? 'selected' : ''; ?>>Dubai Bank Kenya</option>
+                                            <option value="23" <?php echo ($employee['bank_code'] ?? '') === '23' ? 'selected' : ''; ?>>Guaranty Trust Bank</option>
+                                            <option value="24" <?php echo ($employee['bank_code'] ?? '') === '24' ? 'selected' : ''; ?>>Family Bank</option>
+                                            <option value="25" <?php echo ($employee['bank_code'] ?? '') === '25' ? 'selected' : ''; ?>>Giro Commercial Bank</option>
+                                            <option value="26" <?php echo ($employee['bank_code'] ?? '') === '26' ? 'selected' : ''; ?>>Guardian Bank</option>
+                                            <option value="27" <?php echo ($employee['bank_code'] ?? '') === '27' ? 'selected' : ''; ?>>Gulf African Bank</option>
+                                            <option value="28" <?php echo ($employee['bank_code'] ?? '') === '28' ? 'selected' : ''; ?>>Victoria Commercial Bank</option>
+                                            <option value="29" <?php echo ($employee['bank_code'] ?? '') === '29' ? 'selected' : ''; ?>>Chase Bank Kenya</option>
+                                            <option value="30" <?php echo ($employee['bank_code'] ?? '') === '30' ? 'selected' : ''; ?>>Middle East Bank Kenya</option>
+                                            <option value="31" <?php echo ($employee['bank_code'] ?? '') === '31' ? 'selected' : ''; ?>>Paramount Universal Bank</option>
+                                            <option value="32" <?php echo ($employee['bank_code'] ?? '') === '32' ? 'selected' : ''; ?>>Jamii Bora Bank</option>
+                                            <option value="33" <?php echo ($employee['bank_code'] ?? '') === '33' ? 'selected' : ''; ?>>Development Bank of Kenya</option>
+                                            <option value="34" <?php echo ($employee['bank_code'] ?? '') === '34' ? 'selected' : ''; ?>>Housing Finance Company of Kenya</option>
+                                            <option value="35" <?php echo ($employee['bank_code'] ?? '') === '35' ? 'selected' : ''; ?>>NIC Bank</option>
+                                            <option value="36" <?php echo ($employee['bank_code'] ?? '') === '36' ? 'selected' : ''; ?>>Commercial Bank of Africa</option>
+                                            <option value="37" <?php echo ($employee['bank_code'] ?? '') === '37' ? 'selected' : ''; ?>>Sidian Bank</option>
+                                            <option value="38" <?php echo ($employee['bank_code'] ?? '') === '38' ? 'selected' : ''; ?>>UBA Kenya Bank</option>
+                                            <option value="39" <?php echo ($employee['bank_code'] ?? '') === '39' ? 'selected' : ''; ?>>Ecobank Kenya</option>
+                                            <option value="40" <?php echo ($employee['bank_code'] ?? '') === '40' ? 'selected' : ''; ?>>Spire Bank</option>
+                                            <option value="41" <?php echo ($employee['bank_code'] ?? '') === '41' ? 'selected' : ''; ?>>Mayfair Bank</option>
+                                            <option value="42" <?php echo ($employee['bank_code'] ?? '') === '42' ? 'selected' : ''; ?>>Access Bank Kenya</option>
+                                            <option value="43" <?php echo ($employee['bank_code'] ?? '') === '43' ? 'selected' : ''; ?>>Kingdom Bank</option>
+                                            <option value="44" <?php echo ($employee['bank_code'] ?? '') === '44' ? 'selected' : ''; ?>>DIB Bank Kenya</option>
+                                            <option value="45" <?php echo ($employee['bank_code'] ?? '') === '45' ? 'selected' : ''; ?>>NCBA Bank Kenya</option>
+                                            <option value="46" <?php echo ($employee['bank_code'] ?? '') === '46' ? 'selected' : ''; ?>>Absa Bank Kenya</option>
+                                            <option value="47" <?php echo ($employee['bank_code'] ?? '') === '47' ? 'selected' : ''; ?>>HFC Limited</option>
+                                            <option value="48" <?php echo ($employee['bank_code'] ?? '') === '48' ? 'selected' : ''; ?>>SBM Bank Kenya</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="bank_name" class="form-label">Bank Name</label>
+                                        <input type="text" class="form-control" id="bank_name" name="bank_name"
+                                               value="<?php echo htmlspecialchars($employee['bank_name'] ?? ''); ?>" readonly>
+                                        <small class="form-text text-muted">Auto-populated when bank is selected</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="account_number" class="form-label">Account Number</label>
+                                        <input type="text" class="form-control" id="account_number" name="account_number"
+                                               value="<?php echo htmlspecialchars($employee['account_number'] ?? ''); ?>"
+                                               placeholder="Enter account number">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="bank_branch" class="form-label">Bank Branch</label>
+                                        <input type="text" class="form-control" id="bank_branch" name="bank_branch"
+                                               value="<?php echo htmlspecialchars($employee['bank_branch'] ?? ''); ?>"
+                                               placeholder="e.g., Nairobi Branch, Mombasa Road">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert alert-info mb-0">
+                                        <small>
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Banking Information:</strong> This information will be used for salary payments and official records.
+                                            Ensure all details are accurate and match your bank account.
+                                        </small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -690,6 +804,10 @@ function handleBulkImport($file) {
                                                 <th>kra_pin</th>
                                                 <th>nssf_number</th>
                                                 <th>nhif_number</th>
+                                                <th>bank_code</th>
+                                                <th>bank_name</th>
+                                                <th>bank_branch</th>
+                                                <th>account_number</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -708,6 +826,10 @@ function handleBulkImport($file) {
                                                 <td>A123456789B</td>
                                                 <td>123456</td>
                                                 <td>654321</td>
+                                                <td>11</td>
+                                                <td>Equity Bank</td>
+                                                <td>Nairobi Branch</td>
+                                                <td>1234567890</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -735,6 +857,78 @@ function handleBulkImport($file) {
 </div>
 
 <script>
+// Kenyan Bank Codes and Names mapping
+const kenyanBanks = {
+    '01': 'Kenya Commercial Bank (KCB)',
+    '02': 'Standard Chartered Bank',
+    '03': 'Barclays Bank of Kenya',
+    '04': 'Bank of Baroda',
+    '05': 'Bank of India',
+    '06': 'Bank of Africa Kenya',
+    '07': 'Prime Bank',
+    '08': 'Imperial Bank',
+    '09': 'Citibank',
+    '10': 'Habib Bank AG Zurich',
+    '11': 'Equity Bank',
+    '12': 'Cooperative Bank of Kenya',
+    '13': 'National Bank of Kenya',
+    '14': 'Diamond Trust Bank',
+    '15': 'Consolidated Bank of Kenya',
+    '16': 'Credit Bank',
+    '17': 'African Banking Corporation',
+    '18': 'Trans National Bank',
+    '19': 'CFC Stanbic Bank',
+    '20': 'I&M Bank',
+    '21': 'Fidelity Commercial Bank',
+    '22': 'Dubai Bank Kenya',
+    '23': 'Guaranty Trust Bank',
+    '24': 'Family Bank',
+    '25': 'Giro Commercial Bank',
+    '26': 'Guardian Bank',
+    '27': 'Gulf African Bank',
+    '28': 'Victoria Commercial Bank',
+    '29': 'Chase Bank Kenya',
+    '30': 'Middle East Bank Kenya',
+    '31': 'Paramount Universal Bank',
+    '32': 'Jamii Bora Bank',
+    '33': 'Development Bank of Kenya',
+    '34': 'Housing Finance Company of Kenya',
+    '35': 'NIC Bank',
+    '36': 'Commercial Bank of Africa',
+    '37': 'Sidian Bank',
+    '38': 'UBA Kenya Bank',
+    '39': 'Ecobank Kenya',
+    '40': 'Spire Bank',
+    '41': 'Mayfair Bank',
+    '42': 'Access Bank Kenya',
+    '43': 'Kingdom Bank',
+    '44': 'DIB Bank Kenya',
+    '45': 'NCBA Bank Kenya',
+    '46': 'Absa Bank Kenya',
+    '47': 'HFC Limited',
+    '48': 'SBM Bank Kenya'
+};
+
+// Update bank name when bank code is selected
+function updateBankName() {
+    const bankCodeSelect = document.getElementById('bank_code');
+    const bankNameInput = document.getElementById('bank_name');
+
+    if (bankCodeSelect && bankNameInput) {
+        const selectedCode = bankCodeSelect.value;
+        if (selectedCode && kenyanBanks[selectedCode]) {
+            bankNameInput.value = kenyanBanks[selectedCode];
+        } else {
+            bankNameInput.value = '';
+        }
+    }
+}
+
+// Initialize bank name on page load if bank code is already selected
+document.addEventListener('DOMContentLoaded', function() {
+    updateBankName();
+});
+
 // Download CSV template
 function downloadTemplate() {
     window.open('download_template.php?type=employees', '_blank');
@@ -796,6 +990,34 @@ document.querySelectorAll('.currency-input').forEach(input => {
             this.value = value.toFixed(2);
         }
     });
+});
+
+// Account number validation
+document.getElementById('account_number')?.addEventListener('input', function() {
+    // Remove non-numeric characters
+    this.value = this.value.replace(/[^0-9]/g, '');
+
+    // Limit to 20 characters (typical max for Kenyan banks)
+    if (this.value.length > 20) {
+        this.value = this.value.substring(0, 20);
+    }
+});
+
+// Bank code validation and formatting
+document.getElementById('bank_code')?.addEventListener('change', function() {
+    const accountField = document.getElementById('account_number');
+    const selectedBank = this.options[this.selectedIndex].text;
+
+    // Clear account number when bank changes
+    if (accountField && accountField.value) {
+        if (confirm('Changing the bank will clear the account number. Continue?')) {
+            accountField.value = '';
+        } else {
+            // Revert to previous selection
+            this.selectedIndex = 0;
+            updateBankName();
+        }
+    }
 });
 </script>
 

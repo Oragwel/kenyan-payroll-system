@@ -28,7 +28,7 @@ if ($type === 'employees') {
     // CSV headers
     $headers = [
         'first_name',
-        'middle_name', 
+        'middle_name',
         'last_name',
         'id_number',
         'email',
@@ -40,7 +40,11 @@ if ($type === 'employees') {
         'contract_type',
         'kra_pin',
         'nssf_number',
-        'nhif_number'
+        'nhif_number',
+        'bank_code',
+        'bank_name',
+        'bank_branch',
+        'account_number'
     ];
 
     // Write headers
@@ -62,7 +66,11 @@ if ($type === 'employees') {
             'permanent',
             'A123456789B',
             '123456',
-            '654321'
+            '654321',
+            '11',
+            'Equity Bank',
+            'Nairobi Branch',
+            '1234567890'
         ],
         [
             'Jane',
@@ -78,7 +86,11 @@ if ($type === 'employees') {
             'permanent',
             'B987654321C',
             '789012',
-            '210987'
+            '210987',
+            '01',
+            'Kenya Commercial Bank (KCB)',
+            'Westlands Branch',
+            '0987654321'
         ],
         [
             'Peter',
@@ -94,7 +106,11 @@ if ($type === 'employees') {
             'contract',
             'C112233445D',
             '345678',
-            '876543'
+            '876543',
+            '12',
+            'Cooperative Bank of Kenya',
+            'CBD Branch',
+            '5432109876'
         ]
     ];
 
