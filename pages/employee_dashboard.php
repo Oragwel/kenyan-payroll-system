@@ -71,6 +71,39 @@ if (isset($_SESSION['employee_id'])) {
     ");
     $stmt->execute([$_SESSION['employee_id']]);
     $recentLeaves = $stmt->fetchAll();
+
+    // Employee Analytics Data
+    // Salary progression (last 12 months)
+    $stmt = $db->prepare("
+        SELECT
+            DATE_FORMAT(pp.pay_date, '%Y-%m') as month,
+            DATE_FORMAT(pp.pay_date, '%M') as month_name,
+            pr.gross_pay,
+            pr.net_pay,
+            pr.total_deductions
+        FROM payroll_records pr
+        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        WHERE pr.employee_id = ?
+        AND pp.pay_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+        ORDER BY pp.pay_date ASC
+    ");
+    $stmt->execute([$_SESSION['employee_id']]);
+    $salaryProgression = $stmt->fetchAll();
+
+    // Leave usage analytics
+    $stmt = $db->prepare("
+        SELECT
+            lt.name as leave_type,
+            COUNT(la.id) as applications_count,
+            SUM(CASE WHEN la.status = 'approved' THEN la.days_requested ELSE 0 END) as days_used,
+            lt.days_per_year as days_allocated
+        FROM leave_types lt
+        LEFT JOIN leave_applications la ON lt.id = la.leave_type_id AND la.employee_id = ?
+        WHERE lt.company_id = ?
+        GROUP BY lt.id, lt.name, lt.days_per_year
+    ");
+    $stmt->execute([$_SESSION['employee_id'], $_SESSION['company_id']]);
+    $leaveUsageAnalytics = $stmt->fetchAll();
 }
 ?>
 
@@ -329,4 +362,221 @@ if (isset($_SESSION['employee_id'])) {
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- Employee Analytics Section -->
+    <?php if (!empty($salaryProgression) || !empty($leaveUsageAnalytics)): ?>
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4 class="mb-4">
+                    <i class="fas fa-chart-line text-success me-2"></i>
+                    My Analytics & Insights
+                </h4>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Salary Progression Chart -->
+            <?php if (!empty($salaryProgression)): ?>
+                <div class="col-lg-8">
+                    <div class="employee-card">
+                        <div class="p-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-area text-success me-2"></i>
+                                My Salary Progression
+                            </h5>
+                            <canvas id="salaryProgressionChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Leave Usage Chart -->
+            <?php if (!empty($leaveUsageAnalytics)): ?>
+                <div class="col-lg-4">
+                    <div class="employee-card">
+                        <div class="p-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-donut text-warning me-2"></i>
+                                Leave Usage
+                            </h5>
+                            <canvas id="leaveUsageChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Employee Analytics JavaScript -->
+<script>
+// Kenyan Flag Colors for Employee Charts
+const kenyaColors = {
+    black: '#000000',
+    red: '#ce1126',
+    white: '#ffffff',
+    green: '#006b3f',
+    lightGreen: '#e8f5e8',
+    darkGreen: '#004d2e',
+    gold: '#ffd700'
+};
+
+// Chart.js default configuration
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#374151';
+
+// 1. Salary Progression Chart
+const salaryProgressionCtx = document.getElementById('salaryProgressionChart');
+if (salaryProgressionCtx) {
+    const salaryData = <?php echo json_encode($salaryProgression); ?>;
+
+    new Chart(salaryProgressionCtx, {
+        type: 'line',
+        data: {
+            labels: salaryData.map(item => item.month_name || 'N/A'),
+            datasets: [{
+                label: 'Gross Pay (KES)',
+                data: salaryData.map(item => parseFloat(item.gross_pay) || 0),
+                borderColor: kenyaColors.green,
+                backgroundColor: kenyaColors.lightGreen,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: kenyaColors.green,
+                pointBorderColor: kenyaColors.white,
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }, {
+                label: 'Net Pay (KES)',
+                data: salaryData.map(item => parseFloat(item.net_pay) || 0),
+                borderColor: kenyaColors.darkGreen,
+                backgroundColor: 'rgba(0,77,46,0.1)',
+                fill: false,
+                tension: 0.4,
+                pointBackgroundColor: kenyaColors.darkGreen,
+                pointBorderColor: kenyaColors.white,
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': KES ' +
+                                   new Intl.NumberFormat().format(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KES ' + new Intl.NumberFormat().format(value);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+// 2. Leave Usage Chart
+const leaveUsageCtx = document.getElementById('leaveUsageChart');
+if (leaveUsageCtx) {
+    const leaveData = <?php echo json_encode($leaveUsageAnalytics); ?>;
+
+    new Chart(leaveUsageCtx, {
+        type: 'doughnut',
+        data: {
+            labels: leaveData.map(item => item.leave_type || 'Unknown'),
+            datasets: [{
+                label: 'Days Used',
+                data: leaveData.map(item => parseInt(item.days_used) || 0),
+                backgroundColor: [
+                    kenyaColors.green,
+                    kenyaColors.red,
+                    kenyaColors.gold,
+                    kenyaColors.black,
+                    kenyaColors.darkGreen
+                ],
+                borderWidth: 3,
+                borderColor: kenyaColors.white,
+                hoverBorderWidth: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const leaveType = leaveData[context.dataIndex];
+                            const allocated = parseInt(leaveType.days_allocated) || 0;
+                            const used = context.parsed;
+                            const remaining = allocated - used;
+                            return [
+                                context.label + ': ' + used + ' days used',
+                                'Remaining: ' + remaining + ' days',
+                                'Allocated: ' + allocated + ' days'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Chart Animation Effects
+document.addEventListener('DOMContentLoaded', function() {
+    const charts = document.querySelectorAll('canvas');
+    charts.forEach((chart, index) => {
+        chart.style.opacity = '0';
+        chart.style.transform = 'translateY(20px)';
+        chart.style.transition = 'all 0.6s ease';
+
+        setTimeout(() => {
+            chart.style.opacity = '1';
+            chart.style.transform = 'translateY(0)';
+        }, 300 + (index * 200));
+    });
+});
+</script>

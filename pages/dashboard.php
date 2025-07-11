@@ -112,22 +112,78 @@ if ($_SESSION['user_role'] === 'admin') {
     $stmt->execute([$_SESSION['company_id']]);
     $departmentStats = $stmt->fetchAll();
 
-    // Monthly Payroll Trend (Last 6 months)
+    // Monthly Payroll Trend (Last 12 months)
     $stmt = $db->prepare("
         SELECT
             DATE_FORMAT(pp.start_date, '%Y-%m') as month,
             DATE_FORMAT(pp.start_date, '%M %Y') as month_name,
+            DATE_FORMAT(pp.start_date, '%b') as month_short,
             SUM(pr.net_pay) as total_net_pay,
+            SUM(pr.gross_pay) as total_gross_pay,
+            SUM(pr.paye_tax) as total_paye,
+            SUM(pr.nssf_deduction) as total_nssf,
+            SUM(pr.nhif_deduction) as total_shif,
+            SUM(pr.housing_levy) as total_housing,
             COUNT(pr.id) as employee_count
         FROM payroll_periods pp
         JOIN payroll_records pr ON pp.id = pr.payroll_period_id
         WHERE pp.company_id = ?
-        AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
         GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m')
-        ORDER BY pp.start_date DESC
+        ORDER BY pp.start_date ASC
     ");
     $stmt->execute([$_SESSION['company_id']]);
     $monthlyTrends = $stmt->fetchAll();
+
+    // Employee Growth Analytics
+    $stmt = $db->prepare("
+        SELECT
+            DATE_FORMAT(created_at, '%Y-%m') as month,
+            DATE_FORMAT(created_at, '%M %Y') as month_name,
+            COUNT(*) as new_employees
+        FROM employees
+        WHERE company_id = ?
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY created_at ASC
+    ");
+    $stmt->execute([$_SESSION['company_id']]);
+    $employeeGrowth = $stmt->fetchAll();
+
+    // Salary Distribution Analytics
+    $stmt = $db->prepare("
+        SELECT
+            CASE
+                WHEN basic_salary < 20000 THEN 'Under 20K'
+                WHEN basic_salary < 50000 THEN '20K - 50K'
+                WHEN basic_salary < 100000 THEN '50K - 100K'
+                WHEN basic_salary < 200000 THEN '100K - 200K'
+                ELSE 'Above 200K'
+            END as salary_range,
+            COUNT(*) as employee_count
+        FROM employees
+        WHERE company_id = ? AND employment_status = 'active'
+        GROUP BY salary_range
+        ORDER BY MIN(basic_salary)
+    ");
+    $stmt->execute([$_SESSION['company_id']]);
+    $salaryDistribution = $stmt->fetchAll();
+
+    // Leave Analytics
+    $stmt = $db->prepare("
+        SELECT
+            lt.name as leave_type,
+            COUNT(la.id) as total_applications,
+            SUM(CASE WHEN la.status = 'approved' THEN 1 ELSE 0 END) as approved,
+            SUM(CASE WHEN la.status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN la.status = 'rejected' THEN 1 ELSE 0 END) as rejected
+        FROM leave_types lt
+        LEFT JOIN leave_applications la ON lt.id = la.leave_type_id
+        WHERE lt.company_id = ?
+        GROUP BY lt.id, lt.name
+    ");
+    $stmt->execute([$_SESSION['company_id']]);
+    $leaveAnalytics = $stmt->fetchAll();
 
     // System Alerts
     if ($stats['pending_leaves'] > 5) {
@@ -771,6 +827,87 @@ body {
             </div>
         </div>
 
+        <!-- Analytics Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Advanced Analytics & Insights
+                </h2>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <!-- Payroll Trends Chart -->
+            <div class="col-lg-8">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-area text-success me-2"></i>
+                            Monthly Payroll Trends (12 Months)
+                        </h5>
+                        <canvas id="payrollTrendsChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Distribution Chart -->
+            <div class="col-lg-4">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-pie text-info me-2"></i>
+                            Salary Distribution
+                        </h5>
+                        <canvas id="salaryDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <!-- Employee Growth Chart -->
+            <div class="col-lg-6">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-bar text-warning me-2"></i>
+                            Employee Growth Trend
+                        </h5>
+                        <canvas id="employeeGrowthChart" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Analytics Chart -->
+            <div class="col-lg-6">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-donut text-danger me-2"></i>
+                            Leave Applications Analytics
+                        </h5>
+                        <canvas id="leaveAnalyticsChart" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statutory Deductions Trend -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="modern-card">
+                    <div class="p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            Statutory Deductions Trend Analysis
+                        </h5>
+                        <canvas id="deductionsTrendChart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Recent Activities and Quick Actions -->
         <div class="row">
             <div class="col-lg-8">
@@ -866,3 +1003,380 @@ body {
 
     <!-- END ADMIN ONLY DASHBOARD -->
 </div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Analytics JavaScript -->
+<script>
+// Kenyan Flag Colors for Charts
+const kenyaColors = {
+    black: '#000000',
+    red: '#ce1126',
+    white: '#ffffff',
+    green: '#006b3f',
+    lightGreen: '#e8f5e8',
+    darkGreen: '#004d2e',
+    gold: '#ffd700'
+};
+
+// Chart.js default configuration
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#374151';
+
+// 1. Payroll Trends Chart
+const payrollTrendsCtx = document.getElementById('payrollTrendsChart');
+if (payrollTrendsCtx) {
+    const payrollData = <?php echo json_encode($monthlyTrends); ?>;
+
+    new Chart(payrollTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: payrollData.map(item => item.month_short || 'N/A'),
+            datasets: [{
+                label: 'Net Payroll (KES)',
+                data: payrollData.map(item => parseFloat(item.total_net_pay) || 0),
+                borderColor: kenyaColors.green,
+                backgroundColor: kenyaColors.lightGreen,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: kenyaColors.green,
+                pointBorderColor: kenyaColors.white,
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }, {
+                label: 'Gross Payroll (KES)',
+                data: payrollData.map(item => parseFloat(item.total_gross_pay) || 0),
+                borderColor: kenyaColors.red,
+                backgroundColor: 'rgba(206,17,38,0.1)',
+                fill: false,
+                tension: 0.4,
+                pointBackgroundColor: kenyaColors.red,
+                pointBorderColor: kenyaColors.white,
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': KES ' +
+                                   new Intl.NumberFormat().format(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KES ' + new Intl.NumberFormat().format(value);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+// 2. Salary Distribution Chart
+const salaryDistCtx = document.getElementById('salaryDistributionChart');
+if (salaryDistCtx) {
+    const salaryData = <?php echo json_encode($salaryDistribution); ?>;
+
+    new Chart(salaryDistCtx, {
+        type: 'doughnut',
+        data: {
+            labels: salaryData.map(item => item.salary_range),
+            datasets: [{
+                data: salaryData.map(item => parseInt(item.employee_count)),
+                backgroundColor: [
+                    kenyaColors.green,
+                    kenyaColors.red,
+                    kenyaColors.black,
+                    kenyaColors.gold,
+                    kenyaColors.darkGreen
+                ],
+                borderWidth: 3,
+                borderColor: kenyaColors.white,
+                hoverBorderWidth: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': ' + context.parsed + ' employees (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 3. Employee Growth Chart
+const employeeGrowthCtx = document.getElementById('employeeGrowthChart');
+if (employeeGrowthCtx) {
+    const growthData = <?php echo json_encode($employeeGrowth); ?>;
+
+    new Chart(employeeGrowthCtx, {
+        type: 'bar',
+        data: {
+            labels: growthData.map(item => item.month_name || 'N/A'),
+            datasets: [{
+                label: 'New Employees',
+                data: growthData.map(item => parseInt(item.new_employees) || 0),
+                backgroundColor: kenyaColors.green,
+                borderColor: kenyaColors.darkGreen,
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'New Employees: ' + context.parsed.y;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 4. Leave Analytics Chart
+const leaveAnalyticsCtx = document.getElementById('leaveAnalyticsChart');
+if (leaveAnalyticsCtx) {
+    const leaveData = <?php echo json_encode($leaveAnalytics); ?>;
+
+    new Chart(leaveAnalyticsCtx, {
+        type: 'bar',
+        data: {
+            labels: leaveData.map(item => item.leave_type || 'N/A'),
+            datasets: [{
+                label: 'Approved',
+                data: leaveData.map(item => parseInt(item.approved) || 0),
+                backgroundColor: kenyaColors.green,
+                borderRadius: 6
+            }, {
+                label: 'Pending',
+                data: leaveData.map(item => parseInt(item.pending) || 0),
+                backgroundColor: kenyaColors.gold,
+                borderRadius: 6
+            }, {
+                label: 'Rejected',
+                data: leaveData.map(item => parseInt(item.rejected) || 0),
+                backgroundColor: kenyaColors.red,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 5. Statutory Deductions Trend Chart
+const deductionsTrendCtx = document.getElementById('deductionsTrendChart');
+if (deductionsTrendCtx) {
+    const payrollData = <?php echo json_encode($monthlyTrends); ?>;
+
+    new Chart(deductionsTrendCtx, {
+        type: 'line',
+        data: {
+            labels: payrollData.map(item => item.month_short || 'N/A'),
+            datasets: [{
+                label: 'PAYE Tax',
+                data: payrollData.map(item => parseFloat(item.total_paye) || 0),
+                borderColor: kenyaColors.green,
+                backgroundColor: kenyaColors.green,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4
+            }, {
+                label: 'NSSF',
+                data: payrollData.map(item => parseFloat(item.total_nssf) || 0),
+                borderColor: kenyaColors.red,
+                backgroundColor: kenyaColors.red,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4
+            }, {
+                label: 'SHIF',
+                data: payrollData.map(item => parseFloat(item.total_shif) || 0),
+                borderColor: kenyaColors.black,
+                backgroundColor: kenyaColors.black,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4
+            }, {
+                label: 'Housing Levy',
+                data: payrollData.map(item => parseFloat(item.total_housing) || 0),
+                borderColor: kenyaColors.darkGreen,
+                backgroundColor: kenyaColors.darkGreen,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': KES ' +
+                                   new Intl.NumberFormat().format(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'KES ' + new Intl.NumberFormat().format(value);
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+// Chart Animation and Interaction Effects
+document.addEventListener('DOMContentLoaded', function() {
+    // Add loading animation
+    const charts = document.querySelectorAll('canvas');
+    charts.forEach(chart => {
+        chart.style.opacity = '0';
+        chart.style.transform = 'translateY(20px)';
+        chart.style.transition = 'all 0.6s ease';
+
+        setTimeout(() => {
+            chart.style.opacity = '1';
+            chart.style.transform = 'translateY(0)';
+        }, 300);
+    });
+});
+</script>
