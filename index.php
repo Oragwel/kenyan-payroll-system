@@ -48,12 +48,28 @@ if (isset($_SESSION['user_id']) && !$secureAuth->validateSession()) {
 
     <div class="<?php echo isset($_SESSION['user_id']) ? 'main-content' : 'auth-container'; ?>">
         <?php
-        // Include the appropriate page
-        $page_file = "pages/{$page}.php";
-        if (file_exists($page_file)) {
-            include $page_file;
+        // Role-based dashboard routing
+        if ($page === 'dashboard' && isset($_SESSION['user_role'])) {
+            switch ($_SESSION['user_role']) {
+                case 'admin':
+                    include 'pages/dashboard.php'; // Admin-only dashboard
+                    break;
+                case 'hr':
+                    include 'pages/hr_dashboard.php'; // HR dashboard
+                    break;
+                case 'employee':
+                default:
+                    include 'pages/employee_dashboard.php'; // Employee dashboard
+                    break;
+            }
         } else {
-            include 'pages/404.php';
+            // Include the appropriate page
+            $page_file = "pages/{$page}.php";
+            if (file_exists($page_file)) {
+                include $page_file;
+            } else {
+                include 'pages/404.php';
+            }
         }
         ?>
     </div>

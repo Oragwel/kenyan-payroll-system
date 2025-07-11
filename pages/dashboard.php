@@ -1,15 +1,42 @@
 <?php
 /**
  * Enhanced Backend Dashboard with Kenyan Flag Theme
- * Comprehensive payroll management dashboard
+ * ADMIN ONLY ACCESS - Comprehensive payroll management dashboard
  */
 
-// Get comprehensive dashboard statistics
+// SECURITY: Check if user is admin - redirect if not
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    // Log unauthorized access attempt
+    if (isset($_SESSION['user_id'])) {
+        error_log("Unauthorized dashboard access attempt by user ID: " . $_SESSION['user_id'] . " with role: " . ($_SESSION['user_role'] ?? 'none'));
+    }
+
+    // Redirect to appropriate page based on user role
+    if (isset($_SESSION['user_role'])) {
+        switch ($_SESSION['user_role']) {
+            case 'hr':
+                header('Location: index.php?page=employees');
+                break;
+            case 'employee':
+                header('Location: index.php?page=profile');
+                break;
+            default:
+                header('Location: index.php?page=auth&action=login');
+                break;
+        }
+    } else {
+        header('Location: index.php?page=auth&action=login');
+    }
+    exit;
+}
+
+// Get comprehensive dashboard statistics (Admin only)
 $stats = [];
 $charts = [];
 $alerts = [];
 
-if (hasPermission('hr')) {
+// Admin-only dashboard content
+if ($_SESSION['user_role'] === 'admin') {
     // Enhanced Employee Statistics
     $stmt = $db->prepare("
         SELECT
@@ -522,7 +549,7 @@ body {
         </div>
     </div>
 
-    <?php if (hasPermission('hr')): ?>
+    <!-- ADMIN ONLY DASHBOARD CONTENT -->
         <!-- Modern System Alerts -->
         <?php if (!empty($alerts)): ?>
             <div class="row mb-5">
@@ -837,105 +864,5 @@ body {
             </div>
         </div>
 
-    <?php else: ?>
-        <!-- Employee Dashboard with Kenyan Theme -->
-        <div class="row">
-            <div class="col-lg-8">
-                <?php if ($latestPayslip): ?>
-                    <div class="kenyan-card">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0">
-                                <i class="fas fa-receipt text-success me-2"></i>
-                                Latest Payslip - <?php echo htmlspecialchars($latestPayslip['period_name']); ?>
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td><strong>Basic Salary:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['basic_salary']); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Total Allowances:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['total_allowances']); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Gross Pay:</strong></td>
-                                            <td><strong><?php echo formatCurrency($latestPayslip['gross_pay']); ?></strong></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div class="col-md-6">
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td><strong>PAYE Tax:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['paye_tax']); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>NSSF:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['nssf_deduction']); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>NHIF/SHIF:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['nhif_deduction']); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Housing Levy:</strong></td>
-                                            <td><?php echo formatCurrency($latestPayslip['housing_levy']); ?></td>
-                                        </tr>
-                                        <tr class="table-success">
-                                            <td><strong>Net Pay:</strong></td>
-                                            <td><strong><?php echo formatCurrency($latestPayslip['net_pay']); ?></strong></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                            <h5>No Payslips Available</h5>
-                            <p class="text-muted">Your payslips will appear here once payroll is processed.</p>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-calendar-alt"></i> Leave Balance</h5>
-                    </div>
-                    <div class="card-body">
-                        <?php if (!empty($leaveBalances)): ?>
-                            <?php foreach ($leaveBalances as $balance): ?>
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between">
-                                        <span><?php echo htmlspecialchars($balance['name']); ?></span>
-                                        <span><?php echo ($balance['days_per_year'] - $balance['used_days']); ?>/<?php echo $balance['days_per_year']; ?></span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" 
-                                             style="width: <?php echo ($balance['used_days'] / $balance['days_per_year']) * 100; ?>%">
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p class="text-muted">No leave types configured.</p>
-                        <?php endif; ?>
-                        
-                        <div class="d-grid mt-3">
-                            <a href="index.php?page=leaves&action=apply" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Apply for Leave
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
+    <!-- END ADMIN ONLY DASHBOARD -->
 </div>
