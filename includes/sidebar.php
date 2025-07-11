@@ -34,6 +34,10 @@
                 <a href="index.php?page=user_management" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'user_management' ? 'active' : ''; ?>">
                     <i class="fas fa-users-cog"></i> User Management
                 </a>
+
+                <a href="index.php?page=cms" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'cms' ? 'active' : ''; ?>">
+                    <i class="fas fa-edit"></i> Content Management (CMS)
+                </a>
             <?php endif; ?>
 
             <?php if (in_array($_SESSION['user_role'], ['admin', 'hr'])): ?>
