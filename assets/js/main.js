@@ -164,11 +164,11 @@ function calculateNSSF(grossPay) {
 }
 
 /**
- * Calculate NHIF contribution
+ * Calculate SHIF contribution (Social Health Insurance Fund)
  */
 function calculateNHIF(grossPay) {
     const rates = [
-        {min: 0, max: 5999, amount: 150},
+        {min: 0, max: 5999, amount: 300},
         {min: 6000, max: 7999, amount: 300},
         {min: 8000, max: 11999, amount: 400},
         {min: 12000, max: 14999, amount: 500},
@@ -186,13 +186,13 @@ function calculateNHIF(grossPay) {
         {min: 90000, max: 99999, amount: 1600},
         {min: 100000, max: Infinity, amount: 1700}
     ];
-    
+
     for (let rate of rates) {
         if (grossPay >= rate.min && grossPay <= rate.max) {
             return rate.amount;
         }
     }
-    return 0;
+    return 300; // Minimum SHIF contribution
 }
 
 /**

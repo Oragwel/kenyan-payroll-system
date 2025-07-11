@@ -21,9 +21,9 @@ define('PAYE_RATES', [
 define('NSSF_RATE', 0.06); // 6% of pensionable pay
 define('NSSF_MAX_PENSIONABLE', 18000); // Maximum pensionable pay
 
-// NHIF/SHIF rates (Social Health Insurance Fund)
+// NHIF/SHIF rates (Social Health Insurance Fund) - Updated 2024
 define('SHIF_RATES', [
-    ['min' => 0, 'max' => 5999, 'amount' => 150],
+    ['min' => 0, 'max' => 5999, 'amount' => 300],
     ['min' => 6000, 'max' => 7999, 'amount' => 300],
     ['min' => 8000, 'max' => 11999, 'amount' => 400],
     ['min' => 12000, 'max' => 14999, 'amount' => 500],

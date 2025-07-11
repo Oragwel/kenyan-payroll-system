@@ -130,14 +130,15 @@ INSERT INTO payroll_periods (company_id, period_name, start_date, end_date, pay_
 (1, 'January 2024', '2024-01-01', '2024-01-31', '2024-02-01', 'completed', 1);
 
 -- Sample payroll records (simplified - in real system these would be calculated)
+-- Updated with correct SHIF rates (minimum KES 300)
 INSERT INTO payroll_records (
     employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
     paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
     total_deductions, net_pay, days_worked
 ) VALUES
-(1, 1, 85000.00, 120000.00, 114900.00, 25470.00, 5100.00, 1600.00, 1800.00, 35000.00, 33970.00, 86030.00, 30),
-(2, 1, 65000.00, 93000.00, 89080.00, 16270.00, 5400.00, 1500.00, 1395.00, 28000.00, 24565.00, 68435.00, 30),
-(3, 1, 75000.00, 106000.00, 100920.00, 20276.00, 5400.00, 1600.00, 1590.00, 31000.00, 28866.00, 77134.00, 30);
+(1, 1, 85000.00, 120000.00, 114900.00, 25470.00, 5100.00, 1700.00, 1800.00, 35000.00, 34070.00, 85930.00, 30),
+(2, 1, 65000.00, 93000.00, 89080.00, 16270.00, 5400.00, 1600.00, 1395.00, 28000.00, 24665.00, 68335.00, 30),
+(3, 1, 75000.00, 106000.00, 100920.00, 20276.00, 5400.00, 1700.00, 1590.00, 31000.00, 28966.00, 77034.00, 30);
 
 -- Insert statutory reports table data
 INSERT INTO statutory_reports (company_id, report_type, period_start, period_end, total_amount, status, generated_by) VALUES
