@@ -14,7 +14,17 @@ $messageType = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'add' || $action === 'edit') {
+    if ($action === 'bulk_import') {
+        // Handle CSV bulk import
+        if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
+            $result = handleBulkImport($_FILES['csv_file']);
+            $message = $result['message'];
+            $messageType = $result['type'];
+        } else {
+            $message = 'Please select a valid CSV file';
+            $messageType = 'danger';
+        }
+    } elseif ($action === 'add' || $action === 'edit') {
         $employeeId = $_POST['employee_id'] ?? null;
         $firstName = sanitizeInput($_POST['first_name']);
         $middleName = sanitizeInput($_POST['middle_name']);
@@ -127,6 +137,227 @@ if ($action === 'add' || $action === 'edit') {
     $stmt->execute([$_SESSION['company_id']]);
     $positions = $stmt->fetchAll();
 }
+
+/**
+ * Handle bulk CSV import of employees
+ */
+function handleBulkImport($file) {
+    global $db;
+
+    $uploadDir = 'uploads/csv/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $fileName = 'employees_import_' . date('Y-m-d_H-i-s') . '.csv';
+    $filePath = $uploadDir . $fileName;
+
+    if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+        return ['message' => 'Failed to upload file', 'type' => 'danger'];
+    }
+
+    $handle = fopen($filePath, 'r');
+    if (!$handle) {
+        return ['message' => 'Failed to read CSV file', 'type' => 'danger'];
+    }
+
+    $header = fgetcsv($handle);
+    $expectedHeaders = [
+        'first_name', 'middle_name', 'last_name', 'id_number', 'email',
+        'phone', 'hire_date', 'basic_salary', 'department_name',
+        'position_title', 'contract_type', 'kra_pin', 'nssf_number', 'nhif_number'
+    ];
+
+    // Normalize headers (remove BOM and trim)
+    $header = array_map(function($h) {
+        return trim(str_replace("\xEF\xBB\xBF", '', $h));
+    }, $header);
+
+    // Validate headers
+    $missingHeaders = array_diff($expectedHeaders, $header);
+    if (!empty($missingHeaders)) {
+        fclose($handle);
+        unlink($filePath);
+        return [
+            'message' => 'Missing required columns: ' . implode(', ', $missingHeaders) .
+                        '. Please download the template and ensure all columns are present.',
+            'type' => 'danger'
+        ];
+    }
+
+    $successCount = 0;
+    $errorCount = 0;
+    $errors = [];
+    $row = 1;
+
+    // Get departments and positions for lookup
+    $stmt = $db->prepare("SELECT id, name FROM departments WHERE company_id = ?");
+    $stmt->execute([$_SESSION['company_id']]);
+    $departments = [];
+    while ($dept = $stmt->fetch()) {
+        $departments[strtolower($dept['name'])] = $dept['id'];
+    }
+
+    $stmt = $db->prepare("SELECT id, title FROM job_positions WHERE company_id = ?");
+    $stmt->execute([$_SESSION['company_id']]);
+    $positions = [];
+    while ($pos = $stmt->fetch()) {
+        $positions[strtolower($pos['title'])] = $pos['id'];
+    }
+
+    while (($data = fgetcsv($handle)) !== FALSE) {
+        $row++;
+
+        if (count($data) !== count($header)) {
+            $errors[] = "Row $row: Column count mismatch";
+            $errorCount++;
+            continue;
+        }
+
+        $employee = array_combine($header, $data);
+
+        // Validate required fields
+        if (empty($employee['first_name']) || empty($employee['last_name']) ||
+            empty($employee['id_number']) || empty($employee['hire_date']) ||
+            empty($employee['basic_salary'])) {
+            $errors[] = "Row $row: Missing required fields";
+            $errorCount++;
+            continue;
+        }
+
+        // Check if employee already exists
+        $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ? AND company_id = ?");
+        $stmt->execute([$employee['id_number'], $_SESSION['company_id']]);
+        if ($stmt->fetch()) {
+            $errors[] = "Row $row: Employee with ID {$employee['id_number']} already exists";
+            $errorCount++;
+            continue;
+        }
+
+        // Lookup department and position IDs
+        $departmentId = null;
+        if (!empty($employee['department_name'])) {
+            $departmentId = $departments[strtolower($employee['department_name'])] ?? null;
+        }
+
+        $positionId = null;
+        if (!empty($employee['position_title'])) {
+            $positionId = $positions[strtolower($employee['position_title'])] ?? null;
+        }
+
+        // Validate contract type
+        $validContractTypes = ['permanent', 'contract', 'casual', 'intern'];
+        $contractType = strtolower($employee['contract_type']);
+        if (!in_array($contractType, $validContractTypes)) {
+            $contractType = 'permanent';
+        }
+
+        // Validate date format
+        $hireDate = date('Y-m-d', strtotime($employee['hire_date']));
+        if (!$hireDate || $hireDate === '1970-01-01') {
+            $errors[] = "Row $row: Invalid hire date format";
+            $errorCount++;
+            continue;
+        }
+
+        // Validate salary
+        $basicSalary = floatval($employee['basic_salary']);
+        if ($basicSalary <= 0) {
+            $errors[] = "Row $row: Invalid salary amount";
+            $errorCount++;
+            continue;
+        }
+
+        // Validate email if provided
+        if (!empty($employee['email']) && !filter_var($employee['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = "Row $row: Invalid email format";
+            $errorCount++;
+            continue;
+        }
+
+        // Validate phone number format if provided
+        if (!empty($employee['phone'])) {
+            $phone = preg_replace('/[^0-9+]/', '', $employee['phone']);
+            if (!preg_match('/^\+254[0-9]{9}$/', $phone) && !preg_match('/^0[0-9]{9}$/', $phone)) {
+                // Try to format Kenyan number
+                if (preg_match('/^[0-9]{9}$/', $phone)) {
+                    $employee['phone'] = '+254' . $phone;
+                } elseif (preg_match('/^0([0-9]{9})$/', $phone, $matches)) {
+                    $employee['phone'] = '+254' . $matches[1];
+                } else {
+                    $errors[] = "Row $row: Invalid phone number format (use +254XXXXXXXXX or 0XXXXXXXXX)";
+                    $errorCount++;
+                    continue;
+                }
+            }
+        }
+
+        // Validate KRA PIN format if provided
+        if (!empty($employee['kra_pin']) && !preg_match('/^[A-Z]\d{9}[A-Z]$/', $employee['kra_pin'])) {
+            $errors[] = "Row $row: Invalid KRA PIN format (should be like P123456789A)";
+            $errorCount++;
+            continue;
+        }
+
+        try {
+            $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
+
+            $stmt = $db->prepare("
+                INSERT INTO employees (
+                    company_id, employee_number, first_name, middle_name, last_name,
+                    id_number, email, phone, hire_date, basic_salary, department_id,
+                    position_id, contract_type, kra_pin, nssf_number, nhif_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $_SESSION['company_id'],
+                $employeeNumber,
+                $employee['first_name'],
+                $employee['middle_name'],
+                $employee['last_name'],
+                $employee['id_number'],
+                $employee['email'],
+                $employee['phone'],
+                $hireDate,
+                $basicSalary,
+                $departmentId,
+                $positionId,
+                $contractType,
+                $employee['kra_pin'],
+                $employee['nssf_number'],
+                $employee['nhif_number']
+            ]);
+
+            $successCount++;
+
+        } catch (Exception $e) {
+            $errors[] = "Row $row: Database error - " . $e->getMessage();
+            $errorCount++;
+        }
+    }
+
+    fclose($handle);
+    unlink($filePath); // Clean up uploaded file
+
+    // Log the import activity
+    logActivity('bulk_import', "Imported $successCount employees, $errorCount errors");
+
+    $message = "Import completed: $successCount employees imported successfully";
+    if ($errorCount > 0) {
+        $message .= ", $errorCount errors occurred";
+        if (count($errors) <= 10) {
+            $message .= ":\n" . implode("\n", $errors);
+        } else {
+            $message .= ". First 10 errors:\n" . implode("\n", array_slice($errors, 0, 10));
+        }
+    }
+
+    return [
+        'message' => $message,
+        'type' => $successCount > 0 ? 'success' : 'danger'
+    ];
+}
 ?>
 
 <div class="container-fluid">
@@ -135,8 +366,20 @@ if ($action === 'add' || $action === 'edit') {
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-users"></i> Employee Management</h2>
                 <?php if ($action === 'list'): ?>
-                    <a href="index.php?page=employees&action=add" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add Employee
+                    <div class="btn-group">
+                        <a href="index.php?page=employees&action=add" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Employee
+                        </a>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
+                            <i class="fas fa-upload"></i> Bulk Import
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> CSV Template
+                        </button>
+                    </div>
+                <?php elseif ($action === 'bulk_import'): ?>
+                    <a href="index.php?page=employees" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
                     </a>
                 <?php else: ?>
                     <a href="index.php?page=employees" class="btn btn-secondary">
@@ -378,3 +621,241 @@ if ($action === 'add' || $action === 'edit') {
         </div>
     <?php endif; ?>
 </div>
+
+<!-- Bulk Import Modal -->
+<div class="modal fade" id="bulkImportModal" tabindex="-1" aria-labelledby="bulkImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green)); color: white;">
+                <h5 class="modal-title" id="bulkImportModalLabel">
+                    <i class="fas fa-upload"></i> Bulk Import Employees
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Import Instructions</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📋 Required Fields:</h6>
+                            <ul class="small">
+                                <li><strong>first_name</strong> - Employee's first name</li>
+                                <li><strong>last_name</strong> - Employee's last name</li>
+                                <li><strong>id_number</strong> - National ID number (unique)</li>
+                                <li><strong>hire_date</strong> - Date format: YYYY-MM-DD</li>
+                                <li><strong>basic_salary</strong> - Monthly salary amount</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📝 Important Notes:</h6>
+                            <ul class="small">
+                                <li>Department and position names must match existing records</li>
+                                <li>Contract types: permanent, contract, casual, intern</li>
+                                <li>Phone format: +254XXXXXXXXX (Kenyan format)</li>
+                                <li>KRA PIN format: P123456789A</li>
+                                <li>Duplicate ID numbers will be skipped</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" action="index.php?page=employees&action=bulk_import" enctype="multipart/form-data" id="bulkImportForm">
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">Maximum file size: 5MB. Only CSV files are allowed.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">CSV Template Structure</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>first_name*</th>
+                                                <th>middle_name</th>
+                                                <th>last_name*</th>
+                                                <th>id_number*</th>
+                                                <th>email</th>
+                                                <th>phone</th>
+                                                <th>hire_date*</th>
+                                                <th>basic_salary*</th>
+                                                <th>department_name</th>
+                                                <th>position_title</th>
+                                                <th>contract_type</th>
+                                                <th>kra_pin</th>
+                                                <th>nssf_number</th>
+                                                <th>nhif_number</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="text-muted">
+                                                <td>John</td>
+                                                <td>Doe</td>
+                                                <td>Smith</td>
+                                                <td>12345678</td>
+                                                <td>john@email.com</td>
+                                                <td>+254700000000</td>
+                                                <td>2024-01-15</td>
+                                                <td>50000</td>
+                                                <td>IT</td>
+                                                <td>Developer</td>
+                                                <td>permanent</td>
+                                                <td>A123456789B</td>
+                                                <td>123456</td>
+                                                <td>654321</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted">* Required fields</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-info" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> Download Template
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload"></i> Import Employees
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Download CSV template
+function downloadTemplate() {
+    window.open('download_template.php?type=employees', '_blank');
+}
+
+// File validation
+document.getElementById('csv_file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        // Check file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            this.value = '';
+            return;
+        }
+
+        // Check file type
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert('Please select a CSV file');
+            this.value = '';
+            return;
+        }
+    }
+});
+
+// Form submission with loading state
+document.getElementById('bulkImportForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+
+    // Re-enable button after 30 seconds as fallback
+    setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }, 30000);
+});
+
+// Search functionality for employee list
+<?php if ($action === 'list'): ?>
+document.querySelector('.search-input').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+<?php endif; ?>
+
+// Currency formatting
+document.querySelectorAll('.currency-input').forEach(input => {
+    input.addEventListener('blur', function() {
+        const value = parseFloat(this.value);
+        if (!isNaN(value)) {
+            this.value = value.toFixed(2);
+        }
+    });
+});
+</script>
+
+<style>
+:root {
+    --kenya-green: #006b3f;
+    --kenya-dark-green: #004d2e;
+    --kenya-red: #ce1126;
+    --kenya-black: #000000;
+    --kenya-white: #ffffff;
+}
+
+.btn-group .btn {
+    margin-right: 0;
+}
+
+.table th {
+    background-color: var(--kenya-green);
+    color: white;
+    border-color: var(--kenya-dark-green);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: rgba(0, 107, 63, 0.05);
+}
+
+.modal-header {
+    border-bottom: 3px solid var(--kenya-red);
+}
+
+.alert-info {
+    border-left: 4px solid var(--kenya-green);
+}
+
+.card-header {
+    background-color: rgba(0, 107, 63, 0.1);
+    border-bottom: 2px solid var(--kenya-green);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--kenya-green), var(--kenya-dark-green));
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--kenya-dark-green), var(--kenya-green));
+    transform: translateY(-1px);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    border: none;
+}
+
+.search-input {
+    border: 2px solid var(--kenya-green);
+}
+
+.search-input:focus {
+    border-color: var(--kenya-dark-green);
+    box-shadow: 0 0 0 0.2rem rgba(0, 107, 63, 0.25);
+}
+</style>
