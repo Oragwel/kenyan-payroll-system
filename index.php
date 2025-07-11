@@ -8,14 +8,24 @@ session_start();
 require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
+require_once 'secure_auth.php';
 
 // Simple routing
 $page = $_GET['page'] ?? 'dashboard';
 $action = $_GET['action'] ?? 'index';
 
-// Check if user is logged in
+// Initialize secure authentication
+global $secureAuth;
+
+// Check if user is logged in with enhanced security
 if (!isset($_SESSION['user_id']) && $page !== 'auth') {
-    header('Location: index.php?page=auth&action=login');
+    header('Location: landing.html');
+    exit;
+}
+
+// Validate session security for authenticated users
+if (isset($_SESSION['user_id']) && !$secureAuth->validateSession()) {
+    header('Location: landing.html');
     exit;
 }
 

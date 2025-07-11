@@ -99,9 +99,14 @@
                         <li><a class="dropdown-item" href="index.php?page=settings">
                             <i class="fas fa-cog"></i> Settings
                         </a></li>
+                        <?php if (hasPermission('admin')): ?>
+                            <li><a class="dropdown-item" href="index.php?page=security_dashboard">
+                                <i class="fas fa-shield-alt"></i> Security Dashboard
+                            </a></li>
+                        <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="index.php?page=auth&action=logout">
-                            <i class="fas fa-sign-out-alt"></i> Logout
+                        <li><a class="dropdown-item" href="secure_auth.php?action=logout">
+                            <i class="fas fa-sign-out-alt"></i> Secure Logout
                         </a></li>
                     </ul>
                 </li>
