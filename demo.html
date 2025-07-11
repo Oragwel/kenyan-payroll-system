@@ -135,6 +135,15 @@
                                 <div class="col-md-6">
                                     <h6>Input</h6>
                                     <div class="mb-3">
+                                        <label class="form-label">Contract Type</label>
+                                        <select class="form-control" id="contractType" onchange="calculatePayroll()">
+                                            <option value="permanent">Permanent</option>
+                                            <option value="contract">Contract</option>
+                                            <option value="casual">Casual Labourer</option>
+                                            <option value="intern">Intern</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
                                         <label class="form-label">Basic Salary (KES)</label>
                                         <input type="number" class="form-control" id="basicSalary" value="75000" onchange="calculatePayroll()">
                                     </div>
@@ -213,14 +222,21 @@
     <script>
         // Demo calculation function
         function calculatePayroll() {
+            const contractType = document.getElementById('contractType').value;
             const basic = parseFloat(document.getElementById('basicSalary').value) || 0;
             const house = parseFloat(document.getElementById('houseAllowance').value) || 0;
             const transport = parseFloat(document.getElementById('transportAllowance').value) || 0;
-            
+
             const gross = basic + house + transport;
-            const nssf = Math.min(gross * 0.06, 1080); // 6% max 18000 annually = 1500 monthly
+
+            // NSSF calculation (exempted for casual labourers)
+            let nssf = 0;
+            if (contractType !== 'casual') {
+                nssf = Math.min(gross * 0.06, 1080); // 6% max 18000 annually = 1500 monthly
+            }
+
             const taxableIncome = gross - nssf;
-            
+
             // PAYE calculation (simplified)
             let paye = 0;
             if (taxableIncome > 24000) {
@@ -232,20 +248,25 @@
                 paye = taxableIncome * 0.10;
             }
             paye = Math.max(0, paye - 2400); // Personal relief
-            
-            // SHIF (Social Health Insurance Fund) - 2.75% with minimum KES 300
+
+            // SHIF (Social Health Insurance Fund) - 2.75% with minimum KES 300 (applies to all)
             const calculated = gross * 0.0275; // 2.75% of gross salary
             const nhif = Math.ceil(Math.max(calculated, 300)); // Minimum KES 300, rounded up to whole number
-            
-            const housingLevy = gross * 0.015;
+
+            // Housing Levy calculation (exempted for casual labourers)
+            let housingLevy = 0;
+            if (contractType !== 'casual') {
+                housingLevy = gross * 0.015; // 1.5% of gross pay
+            }
+
             const net = gross - paye - nssf - nhif - housingLevy;
-            
+
             // Update display
             document.getElementById('grossPay').textContent = 'KES ' + gross.toLocaleString();
             document.getElementById('paye').textContent = 'KES ' + Math.round(paye).toLocaleString();
-            document.getElementById('nssf').textContent = 'KES ' + Math.round(nssf).toLocaleString();
+            document.getElementById('nssf').textContent = 'KES ' + Math.round(nssf).toLocaleString() + (contractType === 'casual' ? ' (Exempted)' : '');
             document.getElementById('nhif').textContent = 'KES ' + nhif.toLocaleString();
-            document.getElementById('housingLevy').textContent = 'KES ' + Math.round(housingLevy).toLocaleString();
+            document.getElementById('housingLevy').textContent = 'KES ' + Math.round(housingLevy).toLocaleString() + (contractType === 'casual' ? ' (Exempted)' : '');
             document.getElementById('netPay').textContent = 'KES ' + Math.round(net).toLocaleString();
         }
         

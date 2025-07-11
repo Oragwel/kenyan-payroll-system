@@ -26,9 +26,14 @@ function calculatePAYE($taxableIncome) {
 }
 
 /**
- * Calculate NSSF contribution
+ * Calculate NSSF contribution (exempted for casual labourers)
  */
-function calculateNSSF($grossPay) {
+function calculateNSSF($grossPay, $contractType = 'permanent') {
+    // Casual labourers are exempted from NSSF
+    if ($contractType === 'casual') {
+        return 0;
+    }
+
     $pensionablePay = min($grossPay, NSSF_MAX_PENSIONABLE);
     return round($pensionablePay * NSSF_RATE, 2);
 }
@@ -42,9 +47,14 @@ function calculateSHIF($grossPay) {
 }
 
 /**
- * Calculate Housing Levy
+ * Calculate Housing Levy (exempted for casual labourers)
  */
-function calculateHousingLevy($grossPay) {
+function calculateHousingLevy($grossPay, $contractType = 'permanent') {
+    // Casual labourers are exempted from Housing Levy
+    if ($contractType === 'casual') {
+        return 0;
+    }
+
     return round($grossPay * HOUSING_LEVY_RATE, 2);
 }
 
@@ -64,32 +74,32 @@ function calculateTaxableIncome($grossPay, $nssfContribution, $pensionContributi
 /**
  * Process complete payroll for an employee
  */
-function processEmployeePayroll($employeeId, $payrollPeriodId, $basicSalary, $allowances = [], $deductions = [], $daysWorked = 30, $overtimeHours = 0, $overtimeRate = 0) {
+function processEmployeePayroll($employeeId, $payrollPeriodId, $basicSalary, $allowances = [], $deductions = [], $daysWorked = 30, $overtimeHours = 0, $overtimeRate = 0, $contractType = 'permanent') {
     // Calculate gross pay
     $totalAllowances = array_sum($allowances);
     $overtimeAmount = $overtimeHours * $overtimeRate;
     $grossPay = $basicSalary + $totalAllowances + $overtimeAmount;
-    
-    // Calculate statutory deductions
-    $nssfDeduction = calculateNSSF($grossPay);
-    $shifDeduction = calculateSHIF($grossPay);
-    $housingLevy = calculateHousingLevy($grossPay);
-    
+
+    // Calculate statutory deductions based on contract type
+    $nssfDeduction = calculateNSSF($grossPay, $contractType);
+    $shifDeduction = calculateSHIF($grossPay); // SHIF applies to all employment types
+    $housingLevy = calculateHousingLevy($grossPay, $contractType);
+
     // Calculate taxable income
     $pensionContribution = $deductions['pension'] ?? 0;
     $insurancePremium = $deductions['insurance'] ?? 0;
     $taxableIncome = calculateTaxableIncome($grossPay, $nssfDeduction, $pensionContribution, $insurancePremium);
-    
+
     // Calculate PAYE
     $payeTax = calculatePAYE($taxableIncome);
-    
+
     // Calculate total deductions
     $totalOtherDeductions = array_sum($deductions);
     $totalDeductions = $payeTax + $nssfDeduction + $shifDeduction + $housingLevy + $totalOtherDeductions;
-    
+
     // Calculate net pay
     $netPay = $grossPay - $totalDeductions;
-    
+
     return [
         'basic_salary' => $basicSalary,
         'total_allowances' => $totalAllowances,
@@ -103,7 +113,8 @@ function processEmployeePayroll($employeeId, $payrollPeriodId, $basicSalary, $al
         'total_deductions' => $totalDeductions,
         'net_pay' => $netPay,
         'days_worked' => $daysWorked,
-        'overtime_hours' => $overtimeHours
+        'overtime_hours' => $overtimeHours,
+        'contract_type' => $contractType
     ];
 }
 

@@ -27,8 +27,11 @@ def calculate_paye(taxable_income):
     tax = max(0, tax - 2400)
     return round(tax, 2)
 
-def calculate_nssf(gross_pay):
-    """Calculate NSSF contribution (6% with max pensionable pay of KES 18,000)"""
+def calculate_nssf(gross_pay, contract_type='permanent'):
+    """Calculate NSSF contribution (6% with max pensionable pay of KES 18,000, exempted for casual)"""
+    if contract_type == 'casual':
+        return 0  # Casual labourers are exempted from NSSF
+
     pensionable_pay = min(gross_pay, 18000)
     return round(pensionable_pay * 0.06, 2)
 
@@ -38,29 +41,32 @@ def calculate_shif(gross_pay):
     calculated = gross_pay * 0.0275  # 2.75% of gross salary
     return math.ceil(max(calculated, 300))  # Minimum KES 300, rounded up to whole number
 
-def calculate_housing_levy(gross_pay):
-    """Calculate Housing Levy (1.5% of gross pay)"""
+def calculate_housing_levy(gross_pay, contract_type='permanent'):
+    """Calculate Housing Levy (1.5% of gross pay, exempted for casual)"""
+    if contract_type == 'casual':
+        return 0  # Casual labourers are exempted from Housing Levy
+
     return round(gross_pay * 0.015, 2)
 
-def calculate_payroll(basic_salary, allowances=0):
+def calculate_payroll(basic_salary, allowances=0, contract_type='permanent'):
     """Calculate complete payroll for an employee"""
     gross_pay = basic_salary + allowances
-    
-    # Calculate statutory deductions
-    nssf = calculate_nssf(gross_pay)
-    shif = calculate_shif(gross_pay)
-    housing_levy = calculate_housing_levy(gross_pay)
-    
+
+    # Calculate statutory deductions based on contract type
+    nssf = calculate_nssf(gross_pay, contract_type)
+    shif = calculate_shif(gross_pay)  # SHIF applies to all employment types
+    housing_levy = calculate_housing_levy(gross_pay, contract_type)
+
     # Calculate taxable income (gross pay minus NSSF)
     taxable_income = gross_pay - nssf
-    
+
     # Calculate PAYE
     paye = calculate_paye(taxable_income)
-    
+
     # Calculate total deductions and net pay
     total_deductions = paye + nssf + shif + housing_levy
     net_pay = gross_pay - total_deductions
-    
+
     return {
         'basic_salary': basic_salary,
         'allowances': allowances,
@@ -71,7 +77,8 @@ def calculate_payroll(basic_salary, allowances=0):
         'taxable_income': taxable_income,
         'paye': paye,
         'total_deductions': total_deductions,
-        'net_pay': net_pay
+        'net_pay': net_pay,
+        'contract_type': contract_type
     }
 
 def format_currency(amount):
@@ -85,33 +92,43 @@ def test_payroll_scenarios():
     
     # Test scenarios
     scenarios = [
-        {"name": "Low Income Worker", "basic": 15000, "allowances": 3000},
-        {"name": "Entry Level Employee", "basic": 25000, "allowances": 8000},
-        {"name": "Mid-Level Employee", "basic": 50000, "allowances": 15000},
-        {"name": "Senior Employee", "basic": 75000, "allowances": 28000},
-        {"name": "Management Level", "basic": 120000, "allowances": 40000},
-        {"name": "Executive Level", "basic": 200000, "allowances": 80000},
+        {"name": "Low Income Worker", "basic": 15000, "allowances": 3000, "contract": "permanent"},
+        {"name": "Entry Level Employee", "basic": 25000, "allowances": 8000, "contract": "permanent"},
+        {"name": "Mid-Level Employee", "basic": 50000, "allowances": 15000, "contract": "permanent"},
+        {"name": "Senior Employee", "basic": 75000, "allowances": 28000, "contract": "permanent"},
+        {"name": "Management Level", "basic": 120000, "allowances": 40000, "contract": "permanent"},
+        {"name": "Executive Level", "basic": 200000, "allowances": 80000, "contract": "permanent"},
+        {"name": "Casual Labourer (Low)", "basic": 15000, "allowances": 2000, "contract": "casual"},
+        {"name": "Casual Labourer (High)", "basic": 35000, "allowances": 5000, "contract": "casual"},
     ]
     
     for scenario in scenarios:
-        print(f"\n📊 {scenario['name']}")
-        print("-" * 40)
-        
-        result = calculate_payroll(scenario['basic'], scenario['allowances'])
-        
+        print(f"\n📊 {scenario['name']} ({scenario['contract'].title()})")
+        print("-" * 50)
+
+        result = calculate_payroll(scenario['basic'], scenario['allowances'], scenario['contract'])
+
         print(f"Basic Salary:     {format_currency(result['basic_salary'])}")
         print(f"Allowances:       {format_currency(result['allowances'])}")
         print(f"Gross Pay:        {format_currency(result['gross_pay'])}")
         print(f"")
-        print(f"NSSF (6%):        {format_currency(result['nssf'])}")
-        print(f"SHIF:             {format_currency(result['shif'])}")
-        print(f"Housing Levy:     {format_currency(result['housing_levy'])}")
+
+        # Show exemptions for casual labourers
+        nssf_text = format_currency(result['nssf'])
+        housing_text = format_currency(result['housing_levy'])
+        if scenario['contract'] == 'casual':
+            nssf_text += " (EXEMPTED)"
+            housing_text += " (EXEMPTED)"
+
+        print(f"NSSF (6%):        {nssf_text}")
+        print(f"SHIF (2.75%):     {format_currency(result['shif'])}")
+        print(f"Housing Levy:     {housing_text}")
         print(f"Taxable Income:   {format_currency(result['taxable_income'])}")
         print(f"PAYE Tax:         {format_currency(result['paye'])}")
         print(f"")
         print(f"Total Deductions: {format_currency(result['total_deductions'])}")
         print(f"NET PAY:          {format_currency(result['net_pay'])}")
-        
+
         # Calculate percentages
         deduction_rate = (result['total_deductions'] / result['gross_pay']) * 100
         print(f"Deduction Rate:   {deduction_rate:.1f}%")

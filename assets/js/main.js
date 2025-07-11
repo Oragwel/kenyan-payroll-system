@@ -155,9 +155,14 @@ function updatePreviewElement(id, amount) {
 }
 
 /**
- * Calculate NSSF contribution
+ * Calculate NSSF contribution (exempted for casual labourers)
  */
-function calculateNSSF(grossPay) {
+function calculateNSSF(grossPay, contractType = 'permanent') {
+    // Casual labourers are exempted from NSSF
+    if (contractType === 'casual') {
+        return 0;
+    }
+
     const maxPensionable = 18000;
     const rate = 0.06;
     return Math.min(grossPay, maxPensionable) * rate;
@@ -169,6 +174,18 @@ function calculateNSSF(grossPay) {
 function calculateNHIF(grossPay) {
     const calculated = grossPay * 0.0275; // 2.75%
     return Math.ceil(Math.max(calculated, 300)); // Minimum KES 300, rounded up to whole number
+}
+
+/**
+ * Calculate Housing Levy (exempted for casual labourers)
+ */
+function calculateHousingLevy(grossPay, contractType = 'permanent') {
+    // Casual labourers are exempted from Housing Levy
+    if (contractType === 'casual') {
+        return 0;
+    }
+
+    return grossPay * 0.015; // 1.5% of gross pay
 }
 
 /**

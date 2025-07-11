@@ -34,9 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
             $stmt->execute([$_SESSION['company_id'], $periodName, $startDate, $endDate, $payDate, $_SESSION['user_id']]);
             $payrollPeriodId = $db->lastInsertId();
             
-            // Get all active employees
+            // Get all active employees with contract type
             $stmt = $db->prepare("
-                SELECT e.*, 
+                SELECT e.*,
                        COALESCE(SUM(ea.amount), 0) as total_allowances,
                        COALESCE(SUM(ed.amount), 0) as total_deductions
                 FROM employees e
@@ -47,11 +47,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
             ");
             $stmt->execute([$_SESSION['company_id']]);
             $employees = $stmt->fetchAll();
-            
+
             $processedCount = 0;
-            
+
             foreach ($employees as $employee) {
-                // Calculate payroll for each employee
+                // Calculate payroll for each employee based on contract type
                 $payrollData = processEmployeePayroll(
                     $employee['id'],
                     $payrollPeriodId,
@@ -60,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
                     [], // Deductions will be fetched separately
                     30, // Default days worked
                     0,  // Overtime hours
-                    0   // Overtime rate
+                    0,  // Overtime rate
+                    $employee['contract_type'] // Pass contract type for exemptions
                 );
                 
                 // Insert payroll record
