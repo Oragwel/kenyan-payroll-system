@@ -186,32 +186,63 @@ function getCompanyInfo() {
  */
 function getThemeSettings() {
     global $db;
-    
-    $stmt = $db->prepare("
-        SELECT setting_key, setting_value 
-        FROM cms_settings 
-        WHERE setting_category = 'theme'
-    ");
-    $stmt->execute();
-    $results = $stmt->fetchAll();
-    
-    $theme = [];
-    foreach ($results as $row) {
-        $theme[$row['setting_key']] = $row['setting_value'];
+
+    try {
+        // Check if cms_settings table exists
+        $stmt = $db->query("SHOW TABLES LIKE 'cms_settings'");
+        if ($stmt->rowCount() == 0) {
+            // Table doesn't exist, return default theme settings
+            return [
+                'primary_color' => '#006b3f',
+                'secondary_color' => '#ce1126',
+                'accent_color' => '#ffffff',
+                'background_color' => '#f8f9fa',
+                'text_color' => '#333333',
+                'theme_style' => 'kenyan_heritage'
+            ];
+        }
+
+        $stmt = $db->prepare("
+            SELECT setting_key, setting_value
+            FROM cms_settings
+            WHERE setting_category = 'theme'
+        ");
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+
+        $theme = [];
+        foreach ($results as $row) {
+            $theme[$row['setting_key']] = $row['setting_value'];
+        }
+
+        // Default Kenyan flag colors
+        $defaults = [
+            'primary_color' => '#006b3f',
+            'secondary_color' => '#ce1126',
+            'accent_color' => '#000000',
+            'background_color' => '#ffffff',
+            'text_color' => '#1f2937',
+            'enable_kenyan_theme' => '1',
+            'show_flag_ribbons' => '1'
+        ];
+
+        return array_merge($defaults, $theme);
+
+    } catch (Exception $e) {
+        // Handle database errors gracefully
+        error_log("CMS Theme Settings error: " . $e->getMessage());
+
+        // Return default Kenyan theme settings
+        return [
+            'primary_color' => '#006b3f',
+            'secondary_color' => '#ce1126',
+            'accent_color' => '#000000',
+            'background_color' => '#ffffff',
+            'text_color' => '#1f2937',
+            'enable_kenyan_theme' => '1',
+            'show_flag_ribbons' => '1'
+        ];
     }
-    
-    // Default Kenyan flag colors
-    $defaults = [
-        'primary_color' => '#006b3f',
-        'secondary_color' => '#ce1126',
-        'accent_color' => '#000000',
-        'background_color' => '#ffffff',
-        'text_color' => '#1f2937',
-        'enable_kenyan_theme' => '1',
-        'show_flag_ribbons' => '1'
-    ];
-    
-    return array_merge($defaults, $theme);
 }
 
 /**
