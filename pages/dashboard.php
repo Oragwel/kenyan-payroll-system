@@ -207,7 +207,7 @@ if ($_SESSION['user_role'] === 'admin') {
                 JOIN payroll_records pr ON pp.id = pr.payroll_period_id
                 WHERE pp.company_id = ?
                 AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m')
+                GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m'), DATE_FORMAT(pp.start_date, '%M %Y'), DATE_FORMAT(pp.start_date, '%b')
                 ORDER BY month ASC
             ");
             $stmt->execute([$_SESSION['company_id']]);
@@ -229,7 +229,7 @@ if ($_SESSION['user_role'] === 'admin') {
         FROM employees
         WHERE company_id = ?
         AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
         ORDER BY month ASC
     ");
     $stmt->execute([$_SESSION['company_id']]);
