@@ -1077,6 +1077,68 @@ body {
                 </div>
             </div>
             <div class="col-lg-4">
+                <!-- Payroll Calculator Widget -->
+                <div class="kenyan-card mb-4">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calculator text-success me-2"></i>
+                            🇰🇪 Payroll Calculator
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label small">Basic Salary (KES)</label>
+                                    <input type="number" class="form-control form-control-sm" id="calcBasicSalary"
+                                           value="50000" onchange="calculateDashboardPayroll()">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">Allowances (KES)</label>
+                                    <input type="number" class="form-control form-control-sm" id="calcAllowances"
+                                           value="15000" onchange="calculateDashboardPayroll()">
+                                </div>
+
+                                <div class="bg-light p-2 rounded">
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Gross Pay:</span>
+                                        <strong id="calcGrossPay">KES 65,000</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-danger">
+                                        <span>PAYE Tax:</span>
+                                        <span id="calcPaye">KES 8,750</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-warning">
+                                        <span>NSSF:</span>
+                                        <span id="calcNssf">KES 2,160</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-info">
+                                        <span>SHIF:</span>
+                                        <span id="calcShif">KES 1,788</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-secondary">
+                                        <span>Housing Levy:</span>
+                                        <span id="calcHousing">KES 975</span>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Net Pay:</strong>
+                                        <strong class="text-success" id="calcNetPay">KES 51,327</strong>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        Quick calculation using 2024 Kenyan tax rates
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
                 <div class="kenyan-card">
                     <div class="card-header bg-transparent">
                         <h5 class="mb-0">
@@ -1494,5 +1556,62 @@ document.addEventListener('DOMContentLoaded', function() {
             chart.style.transform = 'translateY(0)';
         }, 300);
     });
+
+    // Payroll Calculator Function
+    function calculateDashboardPayroll() {
+        const basicSalary = parseFloat(document.getElementById('calcBasicSalary').value) || 0;
+        const allowances = parseFloat(document.getElementById('calcAllowances').value) || 0;
+
+        // Calculate gross pay
+        const grossPay = basicSalary + allowances;
+
+        // Calculate PAYE Tax (2024 Kenyan rates)
+        let paye = 0;
+        let taxableIncome = grossPay;
+
+        if (taxableIncome > 800000) {
+            paye += (taxableIncome - 800000) * 0.35;
+            taxableIncome = 800000;
+        }
+        if (taxableIncome > 500000) {
+            paye += (taxableIncome - 500000) * 0.325;
+            taxableIncome = 500000;
+        }
+        if (taxableIncome > 32333) {
+            paye += (taxableIncome - 32333) * 0.30;
+            taxableIncome = 32333;
+        }
+        if (taxableIncome > 24000) {
+            paye += (taxableIncome - 24000) * 0.25;
+            taxableIncome = 24000;
+        }
+        if (taxableIncome > 0) {
+            paye += taxableIncome * 0.10;
+        }
+
+        // Calculate NSSF (6% of gross, max 2160)
+        const nssf = Math.min(grossPay * 0.06, 2160);
+
+        // Calculate SHIF (2.75% of gross)
+        const shif = grossPay * 0.0275;
+
+        // Calculate Housing Levy (1.5% of gross)
+        const housingLevy = grossPay * 0.015;
+
+        // Calculate net pay
+        const totalDeductions = paye + nssf + shif + housingLevy;
+        const netPay = grossPay - totalDeductions;
+
+        // Update display
+        document.getElementById('calcGrossPay').textContent = 'KES ' + grossPay.toLocaleString();
+        document.getElementById('calcPaye').textContent = 'KES ' + Math.round(paye).toLocaleString();
+        document.getElementById('calcNssf').textContent = 'KES ' + Math.round(nssf).toLocaleString();
+        document.getElementById('calcShif').textContent = 'KES ' + Math.round(shif).toLocaleString();
+        document.getElementById('calcHousing').textContent = 'KES ' + Math.round(housingLevy).toLocaleString();
+        document.getElementById('calcNetPay').textContent = 'KES ' + Math.round(netPay).toLocaleString();
+    }
+
+    // Initialize calculator on page load
+    calculateDashboardPayroll();
 });
 </script>
