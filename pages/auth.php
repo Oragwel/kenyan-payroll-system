@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $messageType = 'danger';
             } else {
                 $passwordHash = hashPassword($password);
-                $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
 
                 if ($stmt->execute([$username, $email, $passwordHash, $role])) {
                     $message = 'User registered successfully';

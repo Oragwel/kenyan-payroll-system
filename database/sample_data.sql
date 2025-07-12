@@ -8,12 +8,12 @@ INSERT INTO companies (name, registration_number, kra_pin, nssf_number, nhif_num
 ('ABC Limited', 'C.123456', 'P051234567A', 'NSSF123456', 'NHIF123456', 'P.O. Box 12345, Nairobi', '+254712345678', 'info@abclimited.co.ke');
 
 -- Insert admin user
-INSERT INTO users (username, email, password_hash, role) VALUES
+INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@abclimited.co.ke', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 -- Password is 'password'
 
 -- Insert HR user
-INSERT INTO users (username, email, password_hash, role) VALUES
+INSERT INTO users (username, email, password, role) VALUES
 ('hr_manager', 'hr@abclimited.co.ke', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'hr');
 
 -- Insert departments

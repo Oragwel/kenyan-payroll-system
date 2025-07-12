@@ -190,7 +190,7 @@ class SecureAuth {
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         
-        if (!$user || !verifyPassword($password, $user['password_hash'])) {
+        if (!$user || !verifyPassword($password, $user['password'] ?? '')) {
             $this->recordAttempt($ipAddress, $username, false, $userAgent);
             $this->logSecurityEvent($user['id'] ?? null, 'failed_login', 
                 "Failed login for username: $username from IP: $ipAddress", 'medium');

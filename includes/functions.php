@@ -192,6 +192,16 @@ function hashPassword($password) {
  * Verify password
  */
 function verifyPassword($password, $hash) {
+    // Handle null or empty hash values
+    if (empty($hash) || $hash === null) {
+        return false;
+    }
+
+    // Handle null or empty password
+    if (empty($password) || $password === null) {
+        return false;
+    }
+
     return password_verify($password, $hash);
 }
 
