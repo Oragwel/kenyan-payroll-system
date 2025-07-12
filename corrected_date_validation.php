@@ -74,7 +74,7 @@ function validatePayrollDates($startDate, $endDate, $payDate, $companyId = null)
         global $db;
         
         $stmt = $db->prepare("
-            SELECT COUNT(*) as count, period_name
+            SELECT COUNT(*) as count
             FROM payroll_periods
             WHERE company_id = ?
             AND (
@@ -83,18 +83,39 @@ function validatePayrollDates($startDate, $endDate, $payDate, $companyId = null)
                 (start_date >= ? AND end_date <= ?)
             )
         ");
-        
+
         $stmt->execute([
             $companyId,
             $startDate, $startDate,  // Check if new start date falls within existing period
             $endDate, $endDate,      // Check if new end date falls within existing period
             $startDate, $endDate     // Check if new period encompasses existing period
         ]);
-        
+
         $overlap = $stmt->fetch();
-        
+
         if ($overlap['count'] > 0) {
-            $errors[] = 'This payroll period overlaps with an existing period: ' . $overlap['period_name'];
+            // Get the overlapping period name separately
+            $nameStmt = $db->prepare("
+                SELECT period_name
+                FROM payroll_periods
+                WHERE company_id = ?
+                AND (
+                    (start_date <= ? AND end_date >= ?) OR
+                    (start_date <= ? AND end_date >= ?) OR
+                    (start_date >= ? AND end_date <= ?)
+                )
+                LIMIT 1
+            ");
+
+            $nameStmt->execute([
+                $companyId,
+                $startDate, $startDate,
+                $endDate, $endDate,
+                $startDate, $endDate
+            ]);
+
+            $periodName = $nameStmt->fetchColumn();
+            $errors[] = 'This payroll period overlaps with an existing period: ' . ($periodName ?: 'Unknown Period');
         }
     }
     
