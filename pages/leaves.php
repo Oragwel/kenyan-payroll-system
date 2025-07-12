@@ -104,8 +104,8 @@ function processLeaveApplication($applicationId, $action, $comments) {
         $status = $action === 'approve' ? 'approved' : 'rejected';
         
         $stmt = $db->prepare("
-            UPDATE leave_applications 
-            SET status = ?, processed_by = ?, processed_at = NOW(), comments = ?
+            UPDATE leave_applications
+            SET status = ?, approved_by = ?, approved_at = NOW(), comments = ?
             WHERE id = ?
         ");
         $stmt->execute([$status, $_SESSION['user_id'], $comments, $applicationId]);
@@ -121,15 +121,15 @@ function processLeaveApplication($applicationId, $action, $comments) {
 if (hasPermission('hr')) {
     // HR can see all applications
     $stmt = $db->prepare("
-        SELECT la.*, 
+        SELECT la.*,
                CONCAT(e.first_name, ' ', e.last_name) as employee_name,
                e.employee_number,
                lt.name as leave_type_name,
-               CONCAT(u.first_name, ' ', u.last_name) as processed_by_name
+               CONCAT(u.first_name, ' ', u.last_name) as approved_by_name
         FROM leave_applications la
         JOIN employees e ON la.employee_id = e.id
         JOIN leave_types lt ON la.leave_type_id = lt.id
-        LEFT JOIN users u ON la.processed_by = u.id
+        LEFT JOIN users u ON la.approved_by = u.id
         WHERE e.company_id = ?
         ORDER BY la.created_at DESC
     ");
@@ -139,10 +139,10 @@ if (hasPermission('hr')) {
     // Employees see only their applications
     $stmt = $db->prepare("
         SELECT la.*, lt.name as leave_type_name,
-               CONCAT(u.first_name, ' ', u.last_name) as processed_by_name
+               CONCAT(u.first_name, ' ', u.last_name) as approved_by_name
         FROM leave_applications la
         JOIN leave_types lt ON la.leave_type_id = lt.id
-        LEFT JOIN users u ON la.processed_by = u.id
+        LEFT JOIN users u ON la.approved_by = u.id
         WHERE la.employee_id = ?
         ORDER BY la.created_at DESC
     ");
@@ -462,8 +462,8 @@ if (isset($_SESSION['employee_id'])) {
                                                     <td>
                                                         <small class="text-muted">
                                                             <?php echo $app['status'] === 'approved' ? 'Approved' : 'Rejected'; ?>
-                                                            <?php if ($app['processed_by_name']): ?>
-                                                                by <?php echo htmlspecialchars($app['processed_by_name']); ?>
+                                                            <?php if ($app['approved_by_name']): ?>
+                                                                by <?php echo htmlspecialchars($app['approved_by_name']); ?>
                                                             <?php endif; ?>
                                                         </small>
                                                     </td>
