@@ -1180,6 +1180,7 @@ body {
         </div>
 
     <!-- END ADMIN ONLY DASHBOARD -->
+    <?php endif; ?>
 </div>
 
 <!-- Chart.js Library -->
