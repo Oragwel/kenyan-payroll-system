@@ -53,64 +53,138 @@ if ($_SESSION['user_role'] === 'admin') {
     $employeeStats = $stmt->fetch();
     $stats = array_merge($stats, $employeeStats);
 
-    // Payroll Statistics
+    // Payroll Statistics (with error handling for missing tables)
     $currentMonth = date('Y-m');
-    $stmt = $db->prepare("
-        SELECT
-            SUM(pr.net_pay) as monthly_payroll,
-            SUM(pr.gross_pay) as gross_payroll,
-            SUM(pr.paye_tax) as total_paye,
-            SUM(pr.nssf_deduction) as total_nssf,
-            SUM(pr.nhif_deduction) as total_shif,
-            SUM(pr.housing_levy) as total_housing_levy,
-            COUNT(*) as payroll_records
-        FROM payroll_records pr
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-        WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ?
-    ");
-    $stmt->execute([$_SESSION['company_id'], $currentMonth]);
-    $payrollStats = $stmt->fetch();
-    $stats = array_merge($stats, $payrollStats);
+    try {
+        // Check if payroll tables exist
+        $stmt = $db->query("SHOW TABLES LIKE 'payroll_records'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT
+                    SUM(pr.net_pay) as monthly_payroll,
+                    SUM(pr.gross_pay) as gross_payroll,
+                    SUM(pr.paye_tax) as total_paye,
+                    SUM(pr.nssf_deduction) as total_nssf,
+                    SUM(pr.nhif_deduction) as total_shif,
+                    SUM(pr.housing_levy) as total_housing_levy,
+                    COUNT(*) as payroll_records
+                FROM payroll_records pr
+                JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ?
+            ");
+            $stmt->execute([$_SESSION['company_id'], $currentMonth]);
+            $payrollStats = $stmt->fetch();
+            $stats = array_merge($stats, $payrollStats);
+        } else {
+            // Default values when payroll tables don't exist
+            $stats = array_merge($stats, [
+                'monthly_payroll' => 0,
+                'gross_payroll' => 0,
+                'total_paye' => 0,
+                'total_nssf' => 0,
+                'total_shif' => 0,
+                'total_housing_levy' => 0,
+                'payroll_records' => 0
+            ]);
+        }
+    } catch (Exception $e) {
+        // Handle any database errors gracefully
+        error_log("Dashboard payroll stats error: " . $e->getMessage());
+        $stats = array_merge($stats, [
+            'monthly_payroll' => 0,
+            'gross_payroll' => 0,
+            'total_paye' => 0,
+            'total_nssf' => 0,
+            'total_shif' => 0,
+            'total_housing_levy' => 0,
+            'payroll_records' => 0
+        ]);
+    }
 
-    // Leave Statistics
-    $stmt = $db->prepare("
-        SELECT
-            COUNT(*) as total_leave_applications,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_leaves,
-            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_leaves,
-            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_leaves
-        FROM leave_applications la
-        JOIN employees e ON la.employee_id = e.id
-        WHERE e.company_id = ?
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
-    $leaveStats = $stmt->fetch();
-    $stats = array_merge($stats, $leaveStats);
+    // Leave Statistics (with error handling for missing tables)
+    try {
+        // Check if leave tables exist
+        $stmt = $db->query("SHOW TABLES LIKE 'leave_applications'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT
+                    COUNT(*) as total_leave_applications,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_leaves,
+                    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_leaves,
+                    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_leaves
+                FROM leave_applications la
+                JOIN employees e ON la.employee_id = e.id
+                WHERE e.company_id = ?
+            ");
+            $stmt->execute([$_SESSION['company_id']]);
+            $leaveStats = $stmt->fetch();
+            $stats = array_merge($stats, $leaveStats);
+        } else {
+            // Default values when leave tables don't exist
+            $stats = array_merge($stats, [
+                'total_leave_applications' => 0,
+                'pending_leaves' => 0,
+                'approved_leaves' => 0,
+                'rejected_leaves' => 0
+            ]);
+        }
+    } catch (Exception $e) {
+        // Handle any database errors gracefully
+        error_log("Dashboard leave stats error: " . $e->getMessage());
+        $stats = array_merge($stats, [
+            'total_leave_applications' => 0,
+            'pending_leaves' => 0,
+            'approved_leaves' => 0,
+            'rejected_leaves' => 0
+        ]);
+    }
 
-    // Recent Activities
-    $stmt = $db->prepare("
-        SELECT * FROM payroll_periods
-        WHERE company_id = ?
-        ORDER BY created_at DESC
-        LIMIT 5
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
-    $recentPayrolls = $stmt->fetchAll();
+    // Recent Activities (with error handling for missing tables)
+    try {
+        // Check if payroll_periods table exists
+        $stmt = $db->query("SHOW TABLES LIKE 'payroll_periods'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT * FROM payroll_periods
+                WHERE company_id = ?
+                ORDER BY created_at DESC
+                LIMIT 5
+            ");
+            $stmt->execute([$_SESSION['company_id']]);
+            $recentPayrolls = $stmt->fetchAll();
+        } else {
+            $recentPayrolls = [];
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard recent payrolls error: " . $e->getMessage());
+        $recentPayrolls = [];
+    }
 
-    // Department Statistics
-    $stmt = $db->prepare("
-        SELECT
-            d.name as department_name,
-            COUNT(e.id) as employee_count,
-            AVG(e.basic_salary) as avg_salary
-        FROM departments d
-        LEFT JOIN employees e ON d.id = e.department_id AND e.employment_status = 'active'
-        WHERE d.company_id = ?
-        GROUP BY d.id, d.name
-        ORDER BY employee_count DESC
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
-    $departmentStats = $stmt->fetchAll();
+    // Department Statistics (with error handling for missing tables)
+    try {
+        // Check if departments table exists
+        $stmt = $db->query("SHOW TABLES LIKE 'departments'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT
+                    d.name as department_name,
+                    COUNT(e.id) as employee_count,
+                    AVG(e.basic_salary) as avg_salary
+                FROM departments d
+                LEFT JOIN employees e ON d.id = e.department_id AND e.employment_status = 'active'
+                WHERE d.company_id = ?
+                GROUP BY d.id, d.name
+                ORDER BY employee_count DESC
+            ");
+            $stmt->execute([$_SESSION['company_id']]);
+            $departmentStats = $stmt->fetchAll();
+        } else {
+            $departmentStats = [];
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard department stats error: " . $e->getMessage());
+        $departmentStats = [];
+    }
 
     // Monthly Payroll Trend (Last 12 months)
     $stmt = $db->prepare("
