@@ -275,7 +275,7 @@ $activeSessions = $stmt->fetchAll();
                                     <tr>
                                         <td><?php echo date('Y-m-d H:i:s', strtotime($event['created_at'])); ?></td>
                                         <td><?php echo htmlspecialchars($event['username'] ?? 'System'); ?></td>
-                                        <td><?php echo htmlspecialchars($event['action']); ?></td>
+                                        <td><?php echo htmlspecialchars($event['event_type'] ?? $event['action'] ?? 'Unknown'); ?></td>
                                         <td><code><?php echo htmlspecialchars($event['ip_address']); ?></code></td>
                                         <td>
                                             <?php
@@ -292,7 +292,7 @@ $activeSessions = $stmt->fetchAll();
                                             </span>
                                         </td>
                                         <td>
-                                            <small><?php echo htmlspecialchars($event['details']); ?></small>
+                                            <small><?php echo htmlspecialchars($event['description'] ?? $event['details'] ?? 'No details'); ?></small>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
