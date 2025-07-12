@@ -208,7 +208,7 @@ if ($_SESSION['user_role'] === 'admin') {
                 WHERE pp.company_id = ?
                 AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
                 GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m')
-                ORDER BY pp.start_date ASC
+                ORDER BY month ASC
             ");
             $stmt->execute([$_SESSION['company_id']]);
             $monthlyTrends = $stmt->fetchAll();
@@ -230,7 +230,7 @@ if ($_SESSION['user_role'] === 'admin') {
         WHERE company_id = ?
         AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
         GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-        ORDER BY created_at ASC
+        ORDER BY month ASC
     ");
     $stmt->execute([$_SESSION['company_id']]);
     $employeeGrowth = $stmt->fetchAll();
