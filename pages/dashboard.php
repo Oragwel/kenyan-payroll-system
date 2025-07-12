@@ -1589,64 +1589,84 @@ function initializeLeaveAnalyticsChart() {
     }
 }
 
-// Chart Animation and Interaction Effects
-document.addEventListener('DOMContentLoaded', function() {
+// Payroll Calculator Function - Global scope for HTML onchange events
+function calculateDashboardPayroll() {
+    const basicSalary = parseFloat(document.getElementById('calcBasicSalary')?.value) || 0;
+    const allowances = parseFloat(document.getElementById('calcAllowances')?.value) || 0;
 
-    // Payroll Calculator Function
-    function calculateDashboardPayroll() {
-        const basicSalary = parseFloat(document.getElementById('calcBasicSalary').value) || 0;
-        const allowances = parseFloat(document.getElementById('calcAllowances').value) || 0;
+    // Calculate gross pay
+    const grossPay = basicSalary + allowances;
 
-        // Calculate gross pay
-        const grossPay = basicSalary + allowances;
+    // Calculate PAYE Tax (2024 Kenyan rates)
+    let paye = 0;
+    let taxableIncome = grossPay;
 
-        // Calculate PAYE Tax (2024 Kenyan rates)
-        let paye = 0;
-        let taxableIncome = grossPay;
-
-        if (taxableIncome > 800000) {
-            paye += (taxableIncome - 800000) * 0.35;
-            taxableIncome = 800000;
-        }
-        if (taxableIncome > 500000) {
-            paye += (taxableIncome - 500000) * 0.325;
-            taxableIncome = 500000;
-        }
-        if (taxableIncome > 32333) {
-            paye += (taxableIncome - 32333) * 0.30;
-            taxableIncome = 32333;
-        }
-        if (taxableIncome > 24000) {
-            paye += (taxableIncome - 24000) * 0.25;
-            taxableIncome = 24000;
-        }
-        if (taxableIncome > 0) {
-            paye += taxableIncome * 0.10;
-        }
-
-        // Calculate NSSF (6% of gross, max 2160)
-        const nssf = Math.min(grossPay * 0.06, 2160);
-
-        // Calculate SHIF (2.75% of gross)
-        const shif = grossPay * 0.0275;
-
-        // Calculate Housing Levy (1.5% of gross)
-        const housingLevy = grossPay * 0.015;
-
-        // Calculate net pay
-        const totalDeductions = paye + nssf + shif + housingLevy;
-        const netPay = grossPay - totalDeductions;
-
-        // Update display
-        document.getElementById('calcGrossPay').textContent = 'KES ' + grossPay.toLocaleString();
-        document.getElementById('calcPaye').textContent = 'KES ' + Math.round(paye).toLocaleString();
-        document.getElementById('calcNssf').textContent = 'KES ' + Math.round(nssf).toLocaleString();
-        document.getElementById('calcShif').textContent = 'KES ' + Math.round(shif).toLocaleString();
-        document.getElementById('calcHousing').textContent = 'KES ' + Math.round(housingLevy).toLocaleString();
-        document.getElementById('calcNetPay').textContent = 'KES ' + Math.round(netPay).toLocaleString();
+    if (taxableIncome > 800000) {
+        paye += (taxableIncome - 800000) * 0.35;
+        taxableIncome = 800000;
+    }
+    if (taxableIncome > 500000) {
+        paye += (taxableIncome - 500000) * 0.325;
+        taxableIncome = 500000;
+    }
+    if (taxableIncome > 32333) {
+        paye += (taxableIncome - 32333) * 0.30;
+        taxableIncome = 32333;
+    }
+    if (taxableIncome > 24000) {
+        paye += (taxableIncome - 24000) * 0.25;
+        taxableIncome = 24000;
+    }
+    if (taxableIncome > 0) {
+        paye += taxableIncome * 0.10;
     }
 
+    // Calculate NSSF (6% of gross, max 2160)
+    const nssf = Math.min(grossPay * 0.06, 2160);
+
+    // Calculate SHIF (2.75% of gross)
+    const shif = grossPay * 0.0275;
+
+    // Calculate Housing Levy (1.5% of gross)
+    const housingLevy = grossPay * 0.015;
+
+    // Calculate net pay
+    const totalDeductions = paye + nssf + shif + housingLevy;
+    const netPay = grossPay - totalDeductions;
+
+    // Update display with null checks
+    const grossPayEl = document.getElementById('calcGrossPay');
+    const payeEl = document.getElementById('calcPaye');
+    const nssfEl = document.getElementById('calcNssf');
+    const shifEl = document.getElementById('calcShif');
+    const housingEl = document.getElementById('calcHousing');
+    const netPayEl = document.getElementById('calcNetPay');
+
+    if (grossPayEl) grossPayEl.textContent = 'KES ' + grossPay.toLocaleString();
+    if (payeEl) payeEl.textContent = 'KES ' + Math.round(paye).toLocaleString();
+    if (nssfEl) nssfEl.textContent = 'KES ' + Math.round(nssf).toLocaleString();
+    if (shifEl) shifEl.textContent = 'KES ' + Math.round(shif).toLocaleString();
+    if (housingEl) housingEl.textContent = 'KES ' + Math.round(housingLevy).toLocaleString();
+    if (netPayEl) netPayEl.textContent = 'KES ' + Math.round(netPay).toLocaleString();
+}
+
+// Chart Animation and Interaction Effects
+document.addEventListener('DOMContentLoaded', function() {
     // Initialize calculator on page load
     calculateDashboardPayroll();
+
+    // Add event listeners for real-time calculation
+    const basicSalaryInput = document.getElementById('calcBasicSalary');
+    const allowancesInput = document.getElementById('calcAllowances');
+
+    if (basicSalaryInput) {
+        basicSalaryInput.addEventListener('input', calculateDashboardPayroll);
+        basicSalaryInput.addEventListener('keyup', calculateDashboardPayroll);
+    }
+
+    if (allowancesInput) {
+        allowancesInput.addEventListener('input', calculateDashboardPayroll);
+        allowancesInput.addEventListener('keyup', calculateDashboardPayroll);
+    }
 });
 </script>
