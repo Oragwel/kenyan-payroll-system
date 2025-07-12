@@ -186,28 +186,39 @@ if ($_SESSION['user_role'] === 'admin') {
         $departmentStats = [];
     }
 
-    // Monthly Payroll Trend (Last 12 months)
-    $stmt = $db->prepare("
-        SELECT
-            DATE_FORMAT(pp.start_date, '%Y-%m') as month,
-            DATE_FORMAT(pp.start_date, '%M %Y') as month_name,
-            DATE_FORMAT(pp.start_date, '%b') as month_short,
-            SUM(pr.net_pay) as total_net_pay,
-            SUM(pr.gross_pay) as total_gross_pay,
-            SUM(pr.paye_tax) as total_paye,
-            SUM(pr.nssf_deduction) as total_nssf,
-            SUM(pr.nhif_deduction) as total_shif,
-            SUM(pr.housing_levy) as total_housing,
-            COUNT(pr.id) as employee_count
-        FROM payroll_periods pp
-        JOIN payroll_records pr ON pp.id = pr.payroll_period_id
-        WHERE pp.company_id = ?
-        AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m')
-        ORDER BY pp.start_date ASC
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
-    $monthlyTrends = $stmt->fetchAll();
+    // Monthly Payroll Trend (Last 12 months) - with error handling
+    try {
+        // Check if payroll tables exist
+        $stmt = $db->query("SHOW TABLES LIKE 'payroll_periods'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT
+                    DATE_FORMAT(pp.start_date, '%Y-%m') as month,
+                    DATE_FORMAT(pp.start_date, '%M %Y') as month_name,
+                    DATE_FORMAT(pp.start_date, '%b') as month_short,
+                    SUM(pr.net_pay) as total_net_pay,
+                    SUM(pr.gross_pay) as total_gross_pay,
+                    SUM(pr.paye_tax) as total_paye,
+                    SUM(pr.nssf_deduction) as total_nssf,
+                    SUM(pr.nhif_deduction) as total_shif,
+                    SUM(pr.housing_levy) as total_housing,
+                    COUNT(pr.id) as employee_count
+                FROM payroll_periods pp
+                JOIN payroll_records pr ON pp.id = pr.payroll_period_id
+                WHERE pp.company_id = ?
+                AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m')
+                ORDER BY pp.start_date ASC
+            ");
+            $stmt->execute([$_SESSION['company_id']]);
+            $monthlyTrends = $stmt->fetchAll();
+        } else {
+            $monthlyTrends = [];
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard monthly trends error: " . $e->getMessage());
+        $monthlyTrends = [];
+    }
 
     // Employee Growth Analytics
     $stmt = $db->prepare("
@@ -243,21 +254,32 @@ if ($_SESSION['user_role'] === 'admin') {
     $stmt->execute([$_SESSION['company_id']]);
     $salaryDistribution = $stmt->fetchAll();
 
-    // Leave Analytics
-    $stmt = $db->prepare("
-        SELECT
-            lt.name as leave_type,
-            COUNT(la.id) as total_applications,
-            SUM(CASE WHEN la.status = 'approved' THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN la.status = 'pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN la.status = 'rejected' THEN 1 ELSE 0 END) as rejected
-        FROM leave_types lt
-        LEFT JOIN leave_applications la ON lt.id = la.leave_type_id
-        WHERE lt.company_id = ?
-        GROUP BY lt.id, lt.name
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
-    $leaveAnalytics = $stmt->fetchAll();
+    // Leave Analytics (with error handling for missing tables)
+    try {
+        // Check if leave tables exist
+        $stmt = $db->query("SHOW TABLES LIKE 'leave_types'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT
+                    lt.name as leave_type,
+                    COUNT(la.id) as total_applications,
+                    SUM(CASE WHEN la.status = 'approved' THEN 1 ELSE 0 END) as approved,
+                    SUM(CASE WHEN la.status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN la.status = 'rejected' THEN 1 ELSE 0 END) as rejected
+                FROM leave_types lt
+                LEFT JOIN leave_applications la ON lt.id = la.leave_type_id
+                WHERE lt.company_id = ?
+                GROUP BY lt.id, lt.name
+            ");
+            $stmt->execute([$_SESSION['company_id']]);
+            $leaveAnalytics = $stmt->fetchAll();
+        } else {
+            $leaveAnalytics = [];
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard leave analytics error: " . $e->getMessage());
+        $leaveAnalytics = [];
+    }
 
     // System Alerts
     if ($stats['pending_leaves'] > 5) {
@@ -285,31 +307,51 @@ if ($_SESSION['user_role'] === 'admin') {
     }
 }
 
-// Employee-specific dashboard data
+// Employee-specific dashboard data (with error handling for missing tables)
 if (isset($_SESSION['employee_id'])) {
     // Get employee personal stats
-    $stmt = $db->prepare("
-        SELECT pr.*, pp.period_name, pp.pay_date 
-        FROM payroll_records pr 
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id 
-        WHERE pr.employee_id = ? 
-        ORDER BY pp.pay_date DESC 
-        LIMIT 1
-    ");
-    $stmt->execute([$_SESSION['employee_id']]);
-    $latestPayslip = $stmt->fetch();
-    
+    try {
+        $stmt = $db->query("SHOW TABLES LIKE 'payroll_records'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT pr.*, pp.period_name, pp.pay_date
+                FROM payroll_records pr
+                JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                WHERE pr.employee_id = ?
+                ORDER BY pp.pay_date DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$_SESSION['employee_id']]);
+            $latestPayslip = $stmt->fetch();
+        } else {
+            $latestPayslip = false;
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard employee payslip error: " . $e->getMessage());
+        $latestPayslip = false;
+    }
+
     // Get leave balance
-    $stmt = $db->prepare("
-        SELECT lt.name, lt.days_per_year,
-               COALESCE(SUM(CASE WHEN la.status = 'approved' THEN la.days_requested ELSE 0 END), 0) as used_days
-        FROM leave_types lt
-        LEFT JOIN leave_applications la ON lt.id = la.leave_type_id AND la.employee_id = ?
-        WHERE lt.company_id = ?
-        GROUP BY lt.id, lt.name, lt.days_per_year
-    ");
-    $stmt->execute([$_SESSION['employee_id'], $_SESSION['company_id']]);
-    $leaveBalances = $stmt->fetchAll();
+    try {
+        $stmt = $db->query("SHOW TABLES LIKE 'leave_types'");
+        if ($stmt->rowCount() > 0) {
+            $stmt = $db->prepare("
+                SELECT lt.name, lt.days_per_year,
+                       COALESCE(SUM(CASE WHEN la.status = 'approved' THEN la.days_requested ELSE 0 END), 0) as used_days
+                FROM leave_types lt
+                LEFT JOIN leave_applications la ON lt.id = la.leave_type_id AND la.employee_id = ?
+                WHERE lt.company_id = ?
+                GROUP BY lt.id, lt.name, lt.days_per_year
+            ");
+            $stmt->execute([$_SESSION['employee_id'], $_SESSION['company_id']]);
+            $leaveBalances = $stmt->fetchAll();
+        } else {
+            $leaveBalances = [];
+        }
+    } catch (Exception $e) {
+        error_log("Dashboard employee leave balance error: " . $e->getMessage());
+        $leaveBalances = [];
+    }
 }
 ?>
 
