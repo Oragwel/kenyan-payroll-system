@@ -42,21 +42,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $bankBranch = sanitizeInput($_POST['bank_branch']);
         $accountNumber = sanitizeInput($_POST['account_number']);
         
-        if (empty($firstName) || empty($lastName) || empty($idNumber) || empty($hireDate) || empty($basicSalary)) {
-            $message = 'Please fill in all required fields';
+        if (empty($firstName) || empty($lastName) || empty($basicSalary)) {
+            $message = 'Please fill in all required fields (First Name, Last Name, Basic Salary)';
             $messageType = 'danger';
         } else {
             if ($action === 'add') {
-                // Check if ID number already exists
-                $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ?");
-                $stmt->execute([$idNumber]);
-                
-                if ($stmt->fetch()) {
-                    $message = 'Employee with this ID number already exists';
-                    $messageType = 'danger';
+                // Check if ID number already exists (only if ID number is provided)
+                if (!empty($idNumber)) {
+                    $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ?");
+                    $stmt->execute([$idNumber]);
+
+                        if ($stmt->fetch()) {
+                            $message = 'Employee with this ID number already exists';
+                            $messageType = 'danger';
+                        } else {
+                            $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
+
+                            $stmt = $db->prepare("
+                                INSERT INTO employees (
+                                    company_id, employee_number, first_name, middle_name, last_name,
+                                    id_number, email, phone, hire_date, basic_salary, department_id,
+                                    position_id, contract_type, bank_code, bank_name, bank_branch, account_number
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ");
+
+                            if ($stmt->execute([
+                                $_SESSION['company_id'], $employeeNumber, $firstName, $middleName,
+                                $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary,
+                                $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
+                            ])) {
+                                $message = 'Employee added successfully';
+                                $messageType = 'success';
+                                logActivity('employee_add', "Added employee: $firstName $lastName");
+                            } else {
+                                $message = 'Failed to add employee';
+                                $messageType = 'danger';
+                            }
+                        }
+                    }
                 } else {
+                    // ID number is empty, proceed with adding employee
                     $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
-                    
+
                     $stmt = $db->prepare("
                         INSERT INTO employees (
                             company_id, employee_number, first_name, middle_name, last_name,
@@ -64,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             position_id, contract_type, bank_code, bank_name, bank_branch, account_number
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
-                    
+
                     if ($stmt->execute([
                         $_SESSION['company_id'], $employeeNumber, $firstName, $middleName,
                         $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary,
@@ -223,22 +250,23 @@ function handleBulkImport($file) {
 
         $employee = array_combine($header, $data);
 
-        // Validate required fields
+        // Validate required fields (only first_name, last_name, and basic_salary are required)
         if (empty($employee['first_name']) || empty($employee['last_name']) ||
-            empty($employee['id_number']) || empty($employee['hire_date']) ||
             empty($employee['basic_salary'])) {
-            $errors[] = "Row $row: Missing required fields";
+            $errors[] = "Row $row: Missing required fields (first_name, last_name, basic_salary)";
             $errorCount++;
             continue;
         }
 
-        // Check if employee already exists
-        $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ? AND company_id = ?");
-        $stmt->execute([$employee['id_number'], $_SESSION['company_id']]);
-        if ($stmt->fetch()) {
-            $errors[] = "Row $row: Employee with ID {$employee['id_number']} already exists";
-            $errorCount++;
-            continue;
+        // Check if employee already exists (only if ID number is provided)
+        if (!empty($employee['id_number'])) {
+            $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ? AND company_id = ?");
+            $stmt->execute([$employee['id_number'], $_SESSION['company_id']]);
+            if ($stmt->fetch()) {
+                $errors[] = "Row $row: Employee with ID {$employee['id_number']} already exists";
+                $errorCount++;
+                continue;
+            }
         }
 
         // Lookup department and position IDs
@@ -259,12 +287,15 @@ function handleBulkImport($file) {
             $contractType = 'permanent';
         }
 
-        // Validate date format
-        $hireDate = date('Y-m-d', strtotime($employee['hire_date']));
-        if (!$hireDate || $hireDate === '1970-01-01') {
-            $errors[] = "Row $row: Invalid hire date format";
-            $errorCount++;
-            continue;
+        // Validate date format (only if hire_date is provided)
+        $hireDate = null;
+        if (!empty($employee['hire_date'])) {
+            $hireDate = date('Y-m-d', strtotime($employee['hire_date']));
+            if (!$hireDate || $hireDate === '1970-01-01') {
+                $errors[] = "Row $row: Invalid hire date format";
+                $errorCount++;
+                continue;
+            }
         }
 
         // Validate salary
@@ -538,9 +569,9 @@ function handleBulkImport($file) {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="id_number" class="form-label">ID Number *</label>
-                                <input type="text" class="form-control" id="id_number" name="id_number" 
-                                       value="<?php echo htmlspecialchars($employee['id_number'] ?? ''); ?>" required>
+                                <label for="id_number" class="form-label">ID Number</label>
+                                <input type="text" class="form-control" id="id_number" name="id_number"
+                                       value="<?php echo htmlspecialchars($employee['id_number'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -562,9 +593,9 @@ function handleBulkImport($file) {
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="hire_date" class="form-label">Hire Date *</label>
-                                <input type="date" class="form-control" id="hire_date" name="hire_date" 
-                                       value="<?php echo $employee['hire_date'] ?? ''; ?>" required>
+                                <label for="hire_date" class="form-label">Hire Date</label>
+                                <input type="date" class="form-control" id="hire_date" name="hire_date"
+                                       value="<?php echo $employee['hire_date'] ?? ''; ?>">
                             </div>
                         </div>
                     </div>
@@ -753,11 +784,11 @@ function handleBulkImport($file) {
                         <div class="col-md-6">
                             <h6>📋 Required Fields:</h6>
                             <ul class="small">
-                                <li><strong>first_name</strong> - Employee's first name</li>
-                                <li><strong>last_name</strong> - Employee's last name</li>
-                                <li><strong>id_number</strong> - National ID number (unique)</li>
-                                <li><strong>hire_date</strong> - Date format: YYYY-MM-DD</li>
-                                <li><strong>basic_salary</strong> - Monthly salary amount</li>
+                                <li><strong>first_name</strong> - Employee's first name (required)</li>
+                                <li><strong>last_name</strong> - Employee's last name (required)</li>
+                                <li><strong>basic_salary</strong> - Monthly salary amount (required)</li>
+                                <li><strong>id_number</strong> - National ID number (optional, must be unique if provided)</li>
+                                <li><strong>hire_date</strong> - Date format: YYYY-MM-DD (optional)</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
