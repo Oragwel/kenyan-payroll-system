@@ -35,40 +35,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  */
 function generateStatutoryReport($data) {
     global $db;
-    
+
     $reportType = $data['report_type'];
     $startDate = $data['start_date'];
     $endDate = $data['end_date'];
-    
+
     try {
+        // Check which columns exist in payroll_records table
+        $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records");
+        $stmt->execute();
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $hasTaxableIncome = in_array('taxable_income', $columns);
+        $hasTotalAllowances = in_array('total_allowances', $columns);
+        $hasAllowances = in_array('allowances', $columns);
+        $hasOtherDeductions = in_array('other_deductions', $columns);
+
+        // Build dynamic SELECT query based on available columns
+        $selectFields = [
+            'e.employee_number',
+            'CONCAT(e.first_name, \' \', e.last_name) as employee_name',
+            'e.id_number',
+            'e.kra_pin',
+            'e.nssf_number',
+            'e.nhif_number',
+            'pp.period_name',
+            'pp.pay_date',
+            'pr.basic_salary',
+            'pr.gross_pay',
+            'pr.paye_tax',
+            'pr.nssf_deduction',
+            'pr.nhif_deduction',
+            'pr.housing_levy',
+            'pr.total_deductions',
+            'pr.net_pay'
+        ];
+
+        // Add conditional fields
+        if ($hasTaxableIncome) {
+            $selectFields[] = 'pr.taxable_income';
+        } else {
+            $selectFields[] = 'pr.gross_pay as taxable_income';
+        }
+
+        if ($hasTotalAllowances) {
+            $selectFields[] = 'pr.total_allowances';
+        } elseif ($hasAllowances) {
+            $selectFields[] = 'pr.allowances as total_allowances';
+        } else {
+            $selectFields[] = '0 as total_allowances';
+        }
+
         // Get payroll data for the period
-        $stmt = $db->prepare("
-            SELECT 
-                e.employee_number,
-                CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-                e.id_number,
-                e.kra_pin,
-                e.nssf_number,
-                e.nhif_number,
-                pp.period_name,
-                pp.pay_date,
-                pr.basic_salary,
-                pr.gross_pay,
-                pr.taxable_income,
-                pr.paye_tax,
-                pr.nssf_deduction,
-                pr.nhif_deduction,
-                pr.housing_levy,
-                pr.total_allowances,
-                pr.total_deductions,
-                pr.net_pay
+        $sql = "
+            SELECT " . implode(', ', $selectFields) . "
             FROM payroll_records pr
             JOIN employees e ON pr.employee_id = e.id
             JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-            WHERE e.company_id = ? 
+            WHERE e.company_id = ?
             AND pp.pay_date BETWEEN ? AND ?
             ORDER BY e.employee_number, pp.pay_date
-        ");
+        ";
+
+        $stmt = $db->prepare($sql);
         $stmt->execute([$_SESSION['company_id'], $startDate, $endDate]);
         $payrollData = $stmt->fetchAll();
         
@@ -202,7 +231,7 @@ function exportStatutoryReport($data) {
     }
 }
 
-// Create statutory_reports table if it doesn't exist
+// Create statutory_reports table if it doesn't exist and add missing columns to payroll_records
 try {
     $db->exec("
         CREATE TABLE IF NOT EXISTS statutory_reports (
@@ -220,6 +249,36 @@ try {
             FOREIGN KEY (generated_by) REFERENCES users(id)
         )
     ");
+
+    // Add missing columns to payroll_records table if they don't exist
+    $columnsToAdd = [
+        'taxable_income' => 'ALTER TABLE payroll_records ADD COLUMN taxable_income DECIMAL(12,2) DEFAULT 0 AFTER gross_pay',
+        'total_allowances' => 'ALTER TABLE payroll_records ADD COLUMN total_allowances DECIMAL(12,2) DEFAULT 0 AFTER housing_levy',
+        'overtime_hours' => 'ALTER TABLE payroll_records ADD COLUMN overtime_hours DECIMAL(5,2) DEFAULT 0 AFTER total_deductions',
+        'overtime_amount' => 'ALTER TABLE payroll_records ADD COLUMN overtime_amount DECIMAL(12,2) DEFAULT 0 AFTER overtime_hours',
+        'days_worked' => 'ALTER TABLE payroll_records ADD COLUMN days_worked INT DEFAULT 30 AFTER overtime_amount'
+    ];
+
+    foreach ($columnsToAdd as $column => $sql) {
+        try {
+            // Check if column exists
+            $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->rowCount() == 0) {
+                $db->exec($sql);
+            }
+        } catch (Exception $e) {
+            // Column might already exist or other error, continue
+        }
+    }
+
+    // Update taxable_income for existing records where it's 0 or NULL
+    try {
+        $db->exec("UPDATE payroll_records SET taxable_income = gross_pay WHERE taxable_income IS NULL OR taxable_income = 0");
+    } catch (Exception $e) {
+        // Continue if update fails
+    }
+
 } catch (Exception $e) {
     // Table creation failed, but continue
 }
