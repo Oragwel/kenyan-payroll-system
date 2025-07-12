@@ -317,3 +317,177 @@ function validateKRAPIN(pin) {
     const pattern = /^[A-Z]\d{9}[A-Z]$/;
     return pattern.test(pin);
 }
+
+/**
+ * Open Payroll Calculator Modal
+ */
+function openPayrollCalculator() {
+    // Initialize calculator when modal opens
+    setTimeout(() => {
+        calculateModalPayroll();
+        addModalEventListeners();
+    }, 100);
+}
+
+/**
+ * Add event listeners for modal calculator inputs
+ */
+function addModalEventListeners() {
+    const contractTypeInput = document.getElementById('modalContractType');
+    const basicSalaryInput = document.getElementById('modalBasicSalary');
+    const houseAllowanceInput = document.getElementById('modalHouseAllowance');
+    const transportAllowanceInput = document.getElementById('modalTransportAllowance');
+
+    // Remove existing listeners to prevent duplicates
+    [contractTypeInput, basicSalaryInput, houseAllowanceInput, transportAllowanceInput].forEach(input => {
+        if (input) {
+            input.removeEventListener('input', calculateModalPayroll);
+            input.removeEventListener('change', calculateModalPayroll);
+            input.removeEventListener('keyup', calculateModalPayroll);
+        }
+    });
+
+    // Add new listeners
+    if (contractTypeInput) {
+        contractTypeInput.addEventListener('change', calculateModalPayroll);
+    }
+
+    if (basicSalaryInput) {
+        basicSalaryInput.addEventListener('input', calculateModalPayroll);
+        basicSalaryInput.addEventListener('keyup', calculateModalPayroll);
+    }
+
+    if (houseAllowanceInput) {
+        houseAllowanceInput.addEventListener('input', calculateModalPayroll);
+        houseAllowanceInput.addEventListener('keyup', calculateModalPayroll);
+    }
+
+    if (transportAllowanceInput) {
+        transportAllowanceInput.addEventListener('input', calculateModalPayroll);
+        transportAllowanceInput.addEventListener('keyup', calculateModalPayroll);
+    }
+}
+
+/**
+ * Modal Payroll Calculator Function - MATCHES EXACT PAYROLL PROCESSING LOGIC
+ */
+function calculateModalPayroll() {
+    // Get input values
+    const contractType = document.getElementById('modalContractType')?.value || 'permanent';
+    const basicSalary = parseFloat(document.getElementById('modalBasicSalary')?.value) || 0;
+    const houseAllowance = parseFloat(document.getElementById('modalHouseAllowance')?.value) || 0;
+    const transportAllowance = parseFloat(document.getElementById('modalTransportAllowance')?.value) || 0;
+
+    // Calculate gross pay
+    const grossPay = basicSalary + houseAllowance + transportAllowance;
+
+    // NSSF calculation (exempted for contract employees) - MATCHES config.php constants
+    let nssf = 0;
+    if (contractType !== 'contract') {
+        const pensionablePay = Math.min(grossPay, 18000); // NSSF_MAX_PENSIONABLE from config
+        nssf = Math.round(pensionablePay * 0.06 * 100) / 100; // 6% with proper rounding
+    }
+
+    // Calculate taxable income (gross minus NSSF) - MATCHES functions.php logic
+    const taxableIncome = Math.max(0, grossPay - nssf);
+
+    // PAYE calculation - MATCHES functions.php calculatePAYE() exactly
+    let paye = 0;
+    const payeBrackets = [
+        {min: 0, max: 24000, rate: 0.10},
+        {min: 24001, max: 32333, rate: 0.25},
+        {min: 32334, max: 500000, rate: 0.30},
+        {min: 500001, max: 800000, rate: 0.325},
+        {min: 800001, max: Number.MAX_SAFE_INTEGER, rate: 0.35}
+    ];
+
+    for (let bracket of payeBrackets) {
+        if (taxableIncome > bracket.min) {
+            const taxableAmount = Math.min(taxableIncome, bracket.max) - bracket.min + 1;
+            if (taxableAmount > 0) {
+                paye += taxableAmount * bracket.rate;
+            }
+        }
+    }
+
+    // Apply personal relief - MATCHES PERSONAL_RELIEF constant
+    paye = Math.max(0, paye - 2400);
+    paye = Math.round(paye * 100) / 100; // Round to 2 decimal places
+
+    // SHIF calculation - MATCHES functions.php calculateSHIF() exactly
+    const shifCalculated = grossPay * 0.0275; // SHIF_RATE from config
+    const shif = Math.ceil(Math.max(shifCalculated, 300)); // SHIF_MINIMUM from config
+
+    // Housing Levy calculation (exempted for contract employees) - MATCHES functions.php
+    let housingLevy = 0;
+    if (contractType !== 'contract') {
+        housingLevy = Math.round(grossPay * 0.015 * 100) / 100; // HOUSING_LEVY_RATE with rounding
+    }
+
+    // Calculate net pay
+    const netPay = grossPay - paye - nssf - shif - housingLevy;
+
+    // Update display with null checks and exemption indicators
+    const grossPayEl = document.getElementById('modalGrossPay');
+    const payeEl = document.getElementById('modalPaye');
+    const nssfEl = document.getElementById('modalNssf');
+    const shifEl = document.getElementById('modalShif');
+    const housingEl = document.getElementById('modalHousing');
+    const netPayEl = document.getElementById('modalNetPay');
+    const exemptionTextEl = document.getElementById('modalExemptionText');
+
+    if (grossPayEl) grossPayEl.textContent = 'KES ' + grossPay.toLocaleString();
+    if (payeEl) payeEl.textContent = 'KES ' + Math.round(paye).toLocaleString();
+    if (nssfEl) nssfEl.textContent = 'KES ' + Math.round(nssf).toLocaleString() + (contractType === 'contract' ? ' (Exempted)' : '');
+    if (shifEl) shifEl.textContent = 'KES ' + shif.toLocaleString();
+    if (housingEl) housingEl.textContent = 'KES ' + Math.round(housingLevy).toLocaleString() + (contractType === 'contract' ? ' (Exempted)' : '');
+    if (netPayEl) netPayEl.textContent = 'KES ' + Math.round(netPay).toLocaleString();
+
+    // Update exemption text based on contract type
+    if (exemptionTextEl) {
+        switch (contractType) {
+            case 'contract':
+                exemptionTextEl.textContent = 'Contract employee: NSSF & Housing Levy exempted';
+                break;
+            case 'casual':
+                exemptionTextEl.textContent = 'Casual labourer: All statutory deductions apply';
+                break;
+            case 'intern':
+                exemptionTextEl.textContent = 'Intern: All statutory deductions apply';
+                break;
+            default:
+                exemptionTextEl.textContent = 'Permanent employee: All statutory deductions apply';
+        }
+    }
+}
+
+/**
+ * Copy calculation results to clipboard
+ */
+function copyCalculationResults() {
+    const contractType = document.getElementById('modalContractType')?.value || 'permanent';
+    const grossPay = document.getElementById('modalGrossPay')?.textContent || '';
+    const paye = document.getElementById('modalPaye')?.textContent || '';
+    const nssf = document.getElementById('modalNssf')?.textContent || '';
+    const shif = document.getElementById('modalShif')?.textContent || '';
+    const housing = document.getElementById('modalHousing')?.textContent || '';
+    const netPay = document.getElementById('modalNetPay')?.textContent || '';
+
+    const results = `🇰🇪 Kenyan Payroll Calculation Results
+Contract Type: ${contractType.charAt(0).toUpperCase() + contractType.slice(1)}
+
+Gross Pay: ${grossPay}
+PAYE Tax: ${paye}
+NSSF: ${nssf}
+SHIF: ${shif}
+Housing Levy: ${housing}
+Net Pay: ${netPay}
+
+Generated by Kenyan Payroll Management System`;
+
+    navigator.clipboard.writeText(results).then(() => {
+        showToast('Calculation results copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Failed to copy results to clipboard', 'error');
+    });
+}

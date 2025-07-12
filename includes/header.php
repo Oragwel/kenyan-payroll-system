@@ -20,6 +20,12 @@
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="openPayrollCalculator()" data-bs-toggle="modal" data-bs-target="#payrollCalculatorModal">
+                        <i class="fas fa-calculator text-success"></i> 🇰🇪 Calculator
+                    </a>
+                </li>
                 
                 <?php if (hasPermission('hr')): ?>
                     <li class="nav-item dropdown">
@@ -40,6 +46,10 @@
                             <i class="fas fa-calculator"></i> Payroll
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="openPayrollCalculator()" data-bs-toggle="modal" data-bs-target="#payrollCalculatorModal">
+                                <i class="fas fa-calculator text-success"></i> 🇰🇪 Payroll Calculator
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=payroll">Payroll Periods</a></li>
                             <li><a class="dropdown-item" href="index.php?page=payroll&action=create">Process Payroll</a></li>
                             <li><hr class="dropdown-divider"></li>
