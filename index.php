@@ -98,7 +98,7 @@ if (isset($_SESSION['user_id']) && $secureAuth && !$secureAuth->validateSession(
                                 Salary Information
                             </h6>
                             <div class="mb-3">
-                                <label class="form-label">Contract Type</label>
+                                <label class="form-label">Employment Type</label>
                                 <select class="form-control" id="modalContractType">
                                     <option value="permanent">Permanent Employee</option>
                                     <option value="contract">Contract (NSSF & Housing Levy Exempt)</option>
@@ -345,7 +345,7 @@ if (isset($_SESSION['user_id']) && $secureAuth && !$secureAuth->validateSession(
         const netPay = document.getElementById('modalNetPay')?.textContent || '';
 
         const results = `🇰🇪 Kenyan Payroll Calculation Results
-Contract Type: ${contractType.charAt(0).toUpperCase() + contractType.slice(1)}
+Employment Type: ${contractType.charAt(0).toUpperCase() + contractType.slice(1)}
 
 Gross Pay: ${grossPay}
 PAYE Tax: ${paye}

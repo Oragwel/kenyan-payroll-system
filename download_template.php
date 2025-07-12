@@ -37,7 +37,7 @@ if ($type === 'employees') {
         'basic_salary',
         'department_name',
         'position_title',
-        'contract_type',
+        'employment_type',
         'kra_pin',
         'nssf_number',
         'nhif_number',

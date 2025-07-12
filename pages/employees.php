@@ -177,7 +177,7 @@ function handleBulkImport($file) {
     $expectedHeaders = [
         'first_name', 'middle_name', 'last_name', 'id_number', 'email',
         'phone', 'hire_date', 'basic_salary', 'department_name',
-        'position_title', 'contract_type', 'kra_pin', 'nssf_number', 'nhif_number',
+        'position_title', 'employment_type', 'kra_pin', 'nssf_number', 'nhif_number',
         'bank_code', 'bank_name', 'bank_branch', 'account_number'
     ];
 
@@ -259,10 +259,10 @@ function handleBulkImport($file) {
             $positionId = $positions[strtolower($employee['position_title'])] ?? null;
         }
 
-        // Validate contract type
-        $validContractTypes = ['permanent', 'contract', 'casual', 'intern'];
-        $contractType = strtolower($employee['contract_type']);
-        if (!in_array($contractType, $validContractTypes)) {
+        // Validate employment type
+        $validEmploymentTypes = ['permanent', 'contract', 'casual', 'intern'];
+        $contractType = strtolower($employee['employment_type']);
+        if (!in_array($contractType, $validEmploymentTypes)) {
             $contractType = 'permanent';
         }
 
@@ -610,7 +610,7 @@ function handleBulkImport($file) {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="contract_type" class="form-label">Contract Type *</label>
+                                <label for="contract_type" class="form-label">Employment Type *</label>
                                 <select class="form-select" id="contract_type" name="contract_type" required>
                                     <option value="">Select Type</option>
                                     <option value="permanent" <?php echo ($employee['contract_type'] ?? '') === 'permanent' ? 'selected' : ''; ?>>Permanent</option>
@@ -774,7 +774,7 @@ function handleBulkImport($file) {
                             <h6>📝 Important Notes:</h6>
                             <ul class="small">
                                 <li>Department and position names must match existing records</li>
-                                <li>Contract types: permanent, contract, casual, intern</li>
+                                <li>Employment types: permanent, contract, casual, intern</li>
                                 <li>Phone format: +254XXXXXXXXX (Kenyan format)</li>
                                 <li>KRA PIN format: P123456789A</li>
                                 <li>Duplicate ID numbers will be skipped</li>

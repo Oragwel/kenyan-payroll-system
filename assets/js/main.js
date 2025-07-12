@@ -157,9 +157,9 @@ function updatePreviewElement(id, amount) {
 /**
  * Calculate NSSF contribution (exempted for contract employees)
  */
-function calculateNSSF(grossPay, contractType = 'permanent') {
+function calculateNSSF(grossPay, employmentType = 'permanent') {
     // Contract employees are exempted from NSSF
-    if (contractType === 'contract') {
+    if (employmentType === 'contract') {
         return 0;
     }
 
@@ -179,9 +179,9 @@ function calculateNHIF(grossPay) {
 /**
  * Calculate Housing Levy (exempted for contract employees)
  */
-function calculateHousingLevy(grossPay, contractType = 'permanent') {
+function calculateHousingLevy(grossPay, employmentType = 'permanent') {
     // Contract employees are exempted from Housing Levy
-    if (contractType === 'contract') {
+    if (employmentType === 'contract') {
         return 0;
     }
 
@@ -474,7 +474,7 @@ function copyCalculationResults() {
     const netPay = document.getElementById('modalNetPay')?.textContent || '';
 
     const results = `🇰🇪 Kenyan Payroll Calculation Results
-Contract Type: ${contractType.charAt(0).toUpperCase() + contractType.slice(1)}
+Employment Type: ${contractType.charAt(0).toUpperCase() + contractType.slice(1)}
 
 Gross Pay: ${grossPay}
 PAYE Tax: ${paye}
