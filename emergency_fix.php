@@ -25,10 +25,15 @@ try {
     
     echo "Current columns: " . implode(', ', $currentColumns) . "\n\n";
     
-    // Add missing columns one by one
+    // Add ALL missing columns for statutory reporting
     $columnsToAdd = [
         'taxable_income' => 'DECIMAL(12,2) DEFAULT 0',
+        'paye_tax' => 'DECIMAL(12,2) DEFAULT 0',
+        'nssf_deduction' => 'DECIMAL(12,2) DEFAULT 0',
+        'nhif_deduction' => 'DECIMAL(12,2) DEFAULT 0',
+        'housing_levy' => 'DECIMAL(12,2) DEFAULT 0',
         'total_allowances' => 'DECIMAL(12,2) DEFAULT 0',
+        'total_deductions' => 'DECIMAL(12,2) DEFAULT 0',
         'overtime_hours' => 'DECIMAL(5,2) DEFAULT 0',
         'overtime_amount' => 'DECIMAL(12,2) DEFAULT 0',
         'days_worked' => 'INT DEFAULT 30'
@@ -60,13 +65,18 @@ try {
         echo "Update failed: " . $e->getMessage() . "\n";
     }
     
-    // Test the query
-    echo "\n🧪 Testing statutory query...\n";
+    // Test the complete statutory query
+    echo "\n🧪 Testing complete statutory query...\n";
     try {
-        $sql = "SELECT taxable_income, total_allowances, paye_tax FROM payroll_records LIMIT 1";
+        $sql = "SELECT
+            basic_salary, gross_pay, taxable_income, paye_tax,
+            nssf_deduction, nhif_deduction, housing_levy,
+            total_allowances, total_deductions, net_pay,
+            days_worked, overtime_hours, overtime_amount
+        FROM payroll_records LIMIT 1";
         $stmt = $db->prepare($sql);
         $stmt->execute();
-        echo "✅ Query test PASSED - all columns accessible\n";
+        echo "✅ Query test PASSED - all statutory columns accessible\n";
     } catch (Exception $e) {
         echo "❌ Query test FAILED: " . $e->getMessage() . "\n";
     }

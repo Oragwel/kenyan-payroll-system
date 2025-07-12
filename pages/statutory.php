@@ -17,10 +17,15 @@ $messageType = '';
 
 // CRITICAL: Fix payroll_records table structure BEFORE any operations
 try {
-    // Add missing columns to payroll_records table if they don't exist
+    // Add ALL missing columns to payroll_records table if they don't exist
     $columnsToAdd = [
         'taxable_income' => 'ALTER TABLE payroll_records ADD COLUMN taxable_income DECIMAL(12,2) DEFAULT 0 AFTER gross_pay',
+        'paye_tax' => 'ALTER TABLE payroll_records ADD COLUMN paye_tax DECIMAL(12,2) DEFAULT 0 AFTER taxable_income',
+        'nssf_deduction' => 'ALTER TABLE payroll_records ADD COLUMN nssf_deduction DECIMAL(12,2) DEFAULT 0 AFTER paye_tax',
+        'nhif_deduction' => 'ALTER TABLE payroll_records ADD COLUMN nhif_deduction DECIMAL(12,2) DEFAULT 0 AFTER nssf_deduction',
+        'housing_levy' => 'ALTER TABLE payroll_records ADD COLUMN housing_levy DECIMAL(12,2) DEFAULT 0 AFTER nhif_deduction',
         'total_allowances' => 'ALTER TABLE payroll_records ADD COLUMN total_allowances DECIMAL(12,2) DEFAULT 0 AFTER housing_levy',
+        'total_deductions' => 'ALTER TABLE payroll_records ADD COLUMN total_deductions DECIMAL(12,2) DEFAULT 0 AFTER total_allowances',
         'overtime_hours' => 'ALTER TABLE payroll_records ADD COLUMN overtime_hours DECIMAL(5,2) DEFAULT 0 AFTER total_deductions',
         'overtime_amount' => 'ALTER TABLE payroll_records ADD COLUMN overtime_amount DECIMAL(12,2) DEFAULT 0 AFTER overtime_hours',
         'days_worked' => 'ALTER TABLE payroll_records ADD COLUMN days_worked INT DEFAULT 30 AFTER overtime_amount'
