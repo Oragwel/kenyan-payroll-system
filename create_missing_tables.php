@@ -112,6 +112,17 @@ try {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
             UNIQUE KEY unique_employee_date (employee_id, date)
+        )",
+
+        'system_settings' => "CREATE TABLE IF NOT EXISTS system_settings (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            company_id INT NOT NULL,
+            setting_key VARCHAR(100) NOT NULL,
+            setting_value TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_setting (company_id, setting_key),
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
         )"
     ];
     

@@ -213,8 +213,6 @@ function getCurrentSettings() {
     return array_merge($defaults, $settings);
 }
 
-$currentSettings = getCurrentSettings();
-
 // Create system_settings table if it doesn't exist
 try {
     $db->exec("
@@ -232,6 +230,8 @@ try {
 } catch (Exception $e) {
     // Table creation failed, but continue
 }
+
+$currentSettings = getCurrentSettings();
 ?>
 
 <!-- Settings Styles -->
