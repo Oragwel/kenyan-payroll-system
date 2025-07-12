@@ -4,10 +4,20 @@
  * Includes rate limiting, session security, and audit logging
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
+
+// Initialize database connection
+$database = new Database();
+$db = $database->getConnection();
+
+// Continue using $db...
+$secureAuth = new SecureAuth($db);
 
 class SecureAuth {
     private $db;
@@ -93,8 +103,14 @@ class SecureAuth {
             INSERT INTO login_attempts (ip_address, username, success, user_agent) 
             VALUES (?, ?, ?, ?)
         ");
-        $stmt->execute([$ipAddress, $username, $success, $userAgent]);
+        $stmt->execute([
+            $ipAddress,
+            $username,
+            (int) $success, // 👈 always cast before SQL insert
+            $userAgent
+        ]);
     }
+    
     
     /**
      * Log security event
@@ -142,7 +158,7 @@ class SecureAuth {
         $stmt = $this->db->prepare("
             SELECT u.*, e.id as employee_id, e.company_id 
             FROM users u 
-            LEFT JOIN employees e ON u.id = e.user_id 
+            LEFT JOIN employees e ON u.employee_id = e.id
             WHERE u.username = ? AND u.is_active = 1
         ");
         $stmt->execute([$username]);

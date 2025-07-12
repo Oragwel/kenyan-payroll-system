@@ -15,42 +15,39 @@ if ($action === 'logout') {
     exit;
 }
 
+// Include secure authentication class and functions
+require_once __DIR__ . '/../secure_auth.php'; // Adjust path if needed
+require_once __DIR__ . '/../includes/functions.php'; // To ensure sanitizeInput exists
+
+$secureAuth = new SecureAuth($db);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'login') {
         $username = sanitizeInput($_POST['username']);
         $password = $_POST['password'];
-        
+
         if (empty($username) || empty($password)) {
             $message = 'Please fill in all fields';
             $messageType = 'danger';
         } else {
-            $stmt = $db->prepare("SELECT u.*, e.id as employee_id, e.company_id FROM users u LEFT JOIN employees e ON u.id = e.user_id WHERE u.username = ? AND u.is_active = 1");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-            
-            if ($user && verifyPassword($password, $user['password_hash'])) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['employee_id'] = $user['employee_id'];
-                $_SESSION['company_id'] = $user['company_id'];
-                
-                logActivity('login', 'User logged in successfully');
-                
+            $result = $secureAuth->authenticate($username, $password);
+
+            if ($result['success']) {
                 header('Location: index.php?page=dashboard');
                 exit;
             } else {
-                $message = 'Invalid username or password';
-                $messageType = 'danger';
+                $message = $result['message'];
+                $messageType = $result['lockout'] ?? false ? 'warning' : 'danger';
             }
         }
     } elseif ($action === 'register' && hasPermission('admin')) {
+        // ✅ Registration logic stays as-is
         $username = sanitizeInput($_POST['username']);
         $email = sanitizeInput($_POST['email']);
         $password = $_POST['password'];
         $confirmPassword = $_POST['confirm_password'];
         $role = sanitizeInput($_POST['role']);
-        
+
         if (empty($username) || empty($email) || empty($password) || empty($role)) {
             $message = 'Please fill in all fields';
             $messageType = 'danger';
@@ -67,14 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check if username or email already exists
             $stmt = $db->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
             $stmt->execute([$username, $email]);
-            
+
             if ($stmt->fetch()) {
                 $message = 'Username or email already exists';
                 $messageType = 'danger';
             } else {
                 $passwordHash = hashPassword($password);
                 $stmt = $db->prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)");
-                
+
                 if ($stmt->execute([$username, $email, $passwordHash, $role])) {
                     $message = 'User registered successfully';
                     $messageType = 'success';
@@ -87,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 ?>
 
 <div class="container-fluid">

@@ -409,7 +409,7 @@ function createAdminAccount($data) {
     if (empty($email)) $errors[] = 'Email is required';
     if (empty($username)) $errors[] = 'Username is required';
     if (empty($password)) $errors[] = 'Password is required';
-    if (empty($companyName)) $errors[] = 'Company name is required';
+   // if (empty($companyName)) $errors[] = 'Company name is required';
     if ($password !== $confirmPassword) $errors[] = 'Passwords do not match';
     if (strlen($password) < 8) $errors[] = 'Password must be at least 8 characters';
     
