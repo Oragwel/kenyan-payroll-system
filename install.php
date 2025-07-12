@@ -452,25 +452,65 @@ function createAdminAccount($data) {
         require_once 'config/database.php';
         $database = new Database();
         $pdo = $database->getConnection();
-        
-        // Create company
-        $stmt = $pdo->prepare("INSERT INTO companies (name) VALUES (?)");
-        $stmt->execute([$companyName]);
-        $companyId = $pdo->lastInsertId();
-        
+
+        // Check if username already exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->rowCount() > 0) {
+            return ['success' => false, 'errors' => ["Username '$username' already exists. Please choose a different username."]];
+        }
+
+        // Check if email already exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->rowCount() > 0) {
+            return ['success' => false, 'errors' => ["Email '$email' is already registered. Please use a different email address."]];
+        }
+
+        // Check if company already exists or create new one
+        $companyId = null;
+        if (!empty($companyName)) {
+            $stmt = $pdo->prepare("SELECT id FROM companies WHERE name = ?");
+            $stmt->execute([$companyName]);
+            $existingCompany = $stmt->fetch();
+
+            if ($existingCompany) {
+                $companyId = $existingCompany['id'];
+            } else {
+                // Create new company
+                $stmt = $pdo->prepare("INSERT INTO companies (name) VALUES (?)");
+                $stmt->execute([$companyName]);
+                $companyId = $pdo->lastInsertId();
+            }
+        } else {
+            // Use default company if no name provided
+            $stmt = $pdo->prepare("SELECT id FROM companies LIMIT 1");
+            $stmt->execute();
+            $existingCompany = $stmt->fetch();
+
+            if ($existingCompany) {
+                $companyId = $existingCompany['id'];
+            } else {
+                // Create default company
+                $stmt = $pdo->prepare("INSERT INTO companies (name) VALUES (?)");
+                $stmt->execute(['Default Company']);
+                $companyId = $pdo->lastInsertId();
+            }
+        }
+
         // Create admin user
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("
-            INSERT INTO users (company_id, username, email, password, first_name, last_name, role) 
-            VALUES (?, ?, ?, ?, ?, ?, 'admin')
+            INSERT INTO users (company_id, username, email, password, first_name, last_name, role, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, 'admin', 1)
         ");
         $stmt->execute([$companyId, $username, $email, $hashedPassword, $firstName, $lastName]);
-        
+
         $_SESSION['admin_created'] = true;
         $_SESSION['company_id'] = $companyId;
-        
-        return ['success' => true];
-        
+
+        return ['success' => true, 'message' => 'Admin account created successfully!'];
+
     } catch (Exception $e) {
         return ['success' => false, 'errors' => ['Failed to create admin account: ' . $e->getMessage()]];
     }
@@ -542,32 +582,73 @@ function completeInstallation() {
         $adminConfig = $_SESSION['admin_config'];
         $companyConfig = $_SESSION['company_config'];
 
-        // Create company
-        $stmt = $db->prepare("INSERT INTO companies (name, address, phone, email, website, kra_pin, nssf_number, nhif_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $companyConfig['company_name'],
-            $companyConfig['company_address'],
-            $companyConfig['company_phone'] ?? '',
-            $companyConfig['company_email'],
-            $companyConfig['company_website'] ?? '',
-            $companyConfig['kra_pin'],
-            $companyConfig['nssf_number'] ?? '',
-            $companyConfig['nhif_number'] ?? ''
-        ]);
-        $companyId = $db->lastInsertId();
+        // Check if company already exists or create new one
+        $companyId = null;
+        $stmt = $db->prepare("SELECT id FROM companies WHERE name = ?");
+        $stmt->execute([$companyConfig['company_name']]);
+        $existingCompany = $stmt->fetch();
 
-        // Create admin user
-        $hashedPassword = password_hash($adminConfig['password'], PASSWORD_DEFAULT);
-        $stmt = $db->prepare("INSERT INTO users (company_id, username, email, password, first_name, last_name, phone, role) VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')");
-        $stmt->execute([
-            $companyId,
-            $adminConfig['username'],
-            $adminConfig['email'],
-            $hashedPassword,
-            $adminConfig['first_name'],
-            $adminConfig['last_name'],
-            $adminConfig['phone'] ?? ''
-        ]);
+        if ($existingCompany) {
+            $companyId = $existingCompany['id'];
+
+            // Update existing company with new information
+            $stmt = $db->prepare("UPDATE companies SET address = ?, phone = ?, email = ?, website = ?, kra_pin = ?, nssf_number = ?, nhif_number = ? WHERE id = ?");
+            $stmt->execute([
+                $companyConfig['company_address'],
+                $companyConfig['company_phone'] ?? '',
+                $companyConfig['company_email'],
+                $companyConfig['company_website'] ?? '',
+                $companyConfig['kra_pin'],
+                $companyConfig['nssf_number'] ?? '',
+                $companyConfig['nhif_number'] ?? '',
+                $companyId
+            ]);
+        } else {
+            // Create new company
+            $stmt = $db->prepare("INSERT INTO companies (name, address, phone, email, website, kra_pin, nssf_number, nhif_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $companyConfig['company_name'],
+                $companyConfig['company_address'],
+                $companyConfig['company_phone'] ?? '',
+                $companyConfig['company_email'],
+                $companyConfig['company_website'] ?? '',
+                $companyConfig['kra_pin'],
+                $companyConfig['nssf_number'] ?? '',
+                $companyConfig['nhif_number'] ?? ''
+            ]);
+            $companyId = $db->lastInsertId();
+        }
+
+        // Check if admin user already exists
+        $stmt = $db->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$adminConfig['username']]);
+        $existingUser = $stmt->fetch();
+
+        if ($existingUser) {
+            // Update existing admin user with company association and latest info
+            $stmt = $db->prepare("UPDATE users SET company_id = ?, email = ?, first_name = ?, last_name = ?, phone = ? WHERE id = ?");
+            $stmt->execute([
+                $companyId,
+                $adminConfig['email'],
+                $adminConfig['first_name'],
+                $adminConfig['last_name'],
+                $adminConfig['phone'] ?? '',
+                $existingUser['id']
+            ]);
+        } else {
+            // Create new admin user (this should rarely happen if Step 4 worked correctly)
+            $hashedPassword = password_hash($adminConfig['password'], PASSWORD_DEFAULT);
+            $stmt = $db->prepare("INSERT INTO users (company_id, username, email, password, first_name, last_name, phone, role, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 'admin', 1)");
+            $stmt->execute([
+                $companyId,
+                $adminConfig['username'],
+                $adminConfig['email'],
+                $hashedPassword,
+                $adminConfig['first_name'],
+                $adminConfig['last_name'],
+                $adminConfig['phone'] ?? ''
+            ]);
+        }
 
         // Create default leave types
         $leaveTypes = [
