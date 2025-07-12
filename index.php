@@ -6,11 +6,9 @@
 
 session_start();
 
-// Check if system is installed
-if (!file_exists('.installed')) {
-    header('Location: install.php');
-    exit;
-}
+// Comprehensive installation check
+require_once 'includes/installation_check.php';
+enforceInstallationCheck();
 
 require_once 'config/database.php';
 require_once 'config/config.php';

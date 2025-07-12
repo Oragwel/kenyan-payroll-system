@@ -16,10 +16,19 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Check if already installed
-if (file_exists('.installed') && !isset($_GET['force'])) {
-    header('Location: index.php');
-    exit;
+// Include installation check functions
+require_once 'includes/installation_check.php';
+
+// Check installation status
+$installationIncomplete = isset($_GET['incomplete']);
+$forceReinstall = isset($_GET['force']);
+
+if (!$installationIncomplete && !$forceReinstall) {
+    $installCheck = checkSystemInstallation();
+    if ($installCheck['installed']) {
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Installation steps
@@ -904,6 +913,24 @@ if (file_exists('.installed') && $currentStep != 7) {
                             <li><?php echo htmlspecialchars($message); ?></li>
                         <?php endforeach; ?>
                     </ul>
+                </div>
+            <?php endif;
+
+            // Show installation status if accessed due to incomplete installation
+            if ($installationIncomplete):
+                $installCheck = checkSystemInstallation();
+                $progress = getInstallationProgress();
+                ?>
+                <div class="alert alert-warning">
+                    <h5>⚠️ Incomplete Installation Detected</h5>
+                    <p>The system detected that your installation is not complete. Please finish the setup process.</p>
+
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: <?php echo $progress; ?>%"></div>
+                    </div>
+                    <small>Installation Progress: <?php echo round($progress); ?>%</small>
+
+                    <?php echo getInstallationStatusMessage($installCheck); ?>
                 </div>
             <?php endif;
 
