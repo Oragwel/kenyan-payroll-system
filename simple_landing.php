@@ -161,8 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canLogin) {
                     </a>
                 </div>
                 <div class="col-md-6">
-                    <a href="install.php" class="btn btn-warning w-100 mb-2">
-                        <i class="fas fa-cog me-2"></i>Run Installer
+                    <a href="install.php?incomplete=1" class="btn btn-warning w-100 mb-2">
+                        <i class="fas fa-cog me-2"></i>Complete Installation
                     </a>
                 </div>
             </div>
@@ -204,8 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canLogin) {
                 </h4>
                 <p class="text-center">The system needs to be installed before you can login.</p>
                 <div class="d-grid gap-2">
-                    <a href="install.php" class="btn btn-primary">
-                        <i class="fas fa-play me-2"></i>Start Installation
+                    <a href="install.php?incomplete=1" class="btn btn-primary">
+                        <i class="fas fa-play me-2"></i>Complete Installation
                     </a>
                     <a href="installation_status.php" class="btn btn-outline-secondary">
                         <i class="fas fa-info me-2"></i>Check Status

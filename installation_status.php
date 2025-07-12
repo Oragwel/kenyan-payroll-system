@@ -142,8 +142,11 @@ $progress = getInstallationProgress();
                         <strong>⚠️ Installation Incomplete</strong> Some components are missing or not properly configured.
                     </div>
                     <div class="text-center">
-                        <a href="install.php" class="btn btn-primary btn-lg">
+                        <a href="install.php?incomplete=1" class="btn btn-primary btn-lg me-2">
                             <i class="fas fa-play me-2"></i>Complete Installation
+                        </a>
+                        <a href="install.php?force=1" class="btn btn-warning btn-lg">
+                            <i class="fas fa-redo me-2"></i>Force Reinstall
                         </a>
                     </div>
                 <?php endif; ?>
@@ -258,8 +261,8 @@ $progress = getInstallationProgress();
                 <h5><i class="fas fa-tools me-2"></i>Available Actions</h5>
             </div>
             <div class="card-body text-center">
-                <a href="install.php" class="btn btn-primary me-2">
-                    <i class="fas fa-play me-2"></i>Run Installer
+                <a href="install.php?incomplete=1" class="btn btn-primary me-2">
+                    <i class="fas fa-play me-2"></i>Complete Installation
                 </a>
                 <a href="install.php?force=1" class="btn btn-warning me-2">
                     <i class="fas fa-redo me-2"></i>Force Reinstall

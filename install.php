@@ -23,11 +23,12 @@ require_once 'includes/installation_check.php';
 $installationIncomplete = isset($_GET['incomplete']);
 $forceReinstall = isset($_GET['force']);
 
+// Only redirect to index.php if installation is truly complete AND not forced
 if (!$installationIncomplete && !$forceReinstall) {
     $installCheck = checkSystemInstallation();
     if ($installCheck['installed']) {
-        header('Location: index.php');
-        exit;
+        // Show completion message instead of redirecting
+        $showCompletionMessage = true;
     }
 }
 
@@ -945,6 +946,45 @@ if (file_exists('.installed') && $currentStep != 7) {
                 </div>
             <?php endif;
 
+            // Show completion message if system is already installed
+            if (isset($showCompletionMessage) && $showCompletionMessage): ?>
+                <div class="installation-summary">
+                    <h3>🎉 Installation Already Complete!</h3>
+                    <p>Your Kenyan Payroll Management System is already installed and ready to use.</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h5>✅ System Status</h5>
+                            <p>All components are properly installed and configured.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h5>🏦 Database Ready</h5>
+                            <p>Database connection and tables are working correctly.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h5>👑 Admin Account</h5>
+                            <p>Administrator account is set up and active.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h5>🏢 Company Info</h5>
+                            <p>Company information is configured and ready.</p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="index.php?page=dashboard" class="btn-installer btn-lg me-3">
+                            <i class="fas fa-home me-2"></i>Go to Dashboard
+                        </a>
+                        <a href="landing.html" class="btn btn-outline-light btn-lg me-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login Page
+                        </a>
+                        <a href="install.php?force=1" class="btn btn-outline-warning btn-lg">
+                            <i class="fas fa-redo me-2"></i>Force Reinstall
+                        </a>
+                    </div>
+                </div>
+            <?php else:
+
             // Display current step content
             switch ($currentStep):
                 case 1: include 'install_steps/step1_welcome.php'; break;
@@ -955,6 +995,8 @@ if (file_exists('.installed') && $currentStep != 7) {
                 case 6: include 'install_steps/step6_config.php'; break;
                 case 7: include 'install_steps/step7_complete.php'; break;
             endswitch;
+
+            endif; // End of completion message check
             ?>
         </div>
 
