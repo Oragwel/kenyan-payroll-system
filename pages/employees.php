@@ -48,40 +48,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($action === 'add') {
                 // Check if ID number already exists (only if ID number is provided)
+                $canProceed = true;
                 if (!empty($idNumber)) {
                     $stmt = $db->prepare("SELECT id FROM employees WHERE id_number = ?");
                     $stmt->execute([$idNumber]);
 
-                        if ($stmt->fetch()) {
-                            $message = 'Employee with this ID number already exists';
-                            $messageType = 'danger';
-                        } else {
-                            $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
-
-                            $stmt = $db->prepare("
-                                INSERT INTO employees (
-                                    company_id, employee_number, first_name, middle_name, last_name,
-                                    id_number, email, phone, hire_date, basic_salary, department_id,
-                                    position_id, contract_type, bank_code, bank_name, bank_branch, account_number
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            ");
-
-                            if ($stmt->execute([
-                                $_SESSION['company_id'], $employeeNumber, $firstName, $middleName,
-                                $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary,
-                                $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
-                            ])) {
-                                $message = 'Employee added successfully';
-                                $messageType = 'success';
-                                logActivity('employee_add', "Added employee: $firstName $lastName");
-                            } else {
-                                $message = 'Failed to add employee';
-                                $messageType = 'danger';
-                            }
-                        }
+                    if ($stmt->fetch()) {
+                        $message = 'Employee with this ID number already exists';
+                        $messageType = 'danger';
+                        $canProceed = false;
                     }
-                } else {
-                    // ID number is empty, proceed with adding employee
+                }
+
+                if ($canProceed) {
                     $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
 
                     $stmt = $db->prepare("
