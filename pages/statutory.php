@@ -15,6 +15,41 @@ $reportType = $_GET['type'] ?? 'paye';
 $message = '';
 $messageType = '';
 
+// CRITICAL: Fix payroll_records table structure BEFORE any operations
+try {
+    // Add missing columns to payroll_records table if they don't exist
+    $columnsToAdd = [
+        'taxable_income' => 'ALTER TABLE payroll_records ADD COLUMN taxable_income DECIMAL(12,2) DEFAULT 0 AFTER gross_pay',
+        'total_allowances' => 'ALTER TABLE payroll_records ADD COLUMN total_allowances DECIMAL(12,2) DEFAULT 0 AFTER housing_levy',
+        'overtime_hours' => 'ALTER TABLE payroll_records ADD COLUMN overtime_hours DECIMAL(5,2) DEFAULT 0 AFTER total_deductions',
+        'overtime_amount' => 'ALTER TABLE payroll_records ADD COLUMN overtime_amount DECIMAL(12,2) DEFAULT 0 AFTER overtime_hours',
+        'days_worked' => 'ALTER TABLE payroll_records ADD COLUMN days_worked INT DEFAULT 30 AFTER overtime_amount'
+    ];
+
+    foreach ($columnsToAdd as $column => $sql) {
+        try {
+            // Check if column exists
+            $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->rowCount() == 0) {
+                $db->exec($sql);
+            }
+        } catch (Exception $e) {
+            // Column might already exist or other error, continue
+        }
+    }
+
+    // Update taxable_income for existing records where it's 0 or NULL
+    try {
+        $db->exec("UPDATE payroll_records SET taxable_income = gross_pay WHERE taxable_income IS NULL OR taxable_income = 0");
+    } catch (Exception $e) {
+        // Continue if update fails
+    }
+
+} catch (Exception $e) {
+    // Continue even if table fixes fail
+}
+
 // Handle report generation
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($action) {
@@ -250,34 +285,7 @@ try {
         )
     ");
 
-    // Add missing columns to payroll_records table if they don't exist
-    $columnsToAdd = [
-        'taxable_income' => 'ALTER TABLE payroll_records ADD COLUMN taxable_income DECIMAL(12,2) DEFAULT 0 AFTER gross_pay',
-        'total_allowances' => 'ALTER TABLE payroll_records ADD COLUMN total_allowances DECIMAL(12,2) DEFAULT 0 AFTER housing_levy',
-        'overtime_hours' => 'ALTER TABLE payroll_records ADD COLUMN overtime_hours DECIMAL(5,2) DEFAULT 0 AFTER total_deductions',
-        'overtime_amount' => 'ALTER TABLE payroll_records ADD COLUMN overtime_amount DECIMAL(12,2) DEFAULT 0 AFTER overtime_hours',
-        'days_worked' => 'ALTER TABLE payroll_records ADD COLUMN days_worked INT DEFAULT 30 AFTER overtime_amount'
-    ];
-
-    foreach ($columnsToAdd as $column => $sql) {
-        try {
-            // Check if column exists
-            $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE ?");
-            $stmt->execute([$column]);
-            if ($stmt->rowCount() == 0) {
-                $db->exec($sql);
-            }
-        } catch (Exception $e) {
-            // Column might already exist or other error, continue
-        }
-    }
-
-    // Update taxable_income for existing records where it's 0 or NULL
-    try {
-        $db->exec("UPDATE payroll_records SET taxable_income = gross_pay WHERE taxable_income IS NULL OR taxable_income = 0");
-    } catch (Exception $e) {
-        // Continue if update fails
-    }
+    // Note: Column addition is now handled at the top of the file
 
 } catch (Exception $e) {
     // Table creation failed, but continue
