@@ -1609,7 +1609,7 @@ function initializeLeaveAnalyticsChart() {
     }
 }
 
-// Enhanced Payroll Calculator Function - Implements demo logic with contract types and exemptions
+// Enhanced Payroll Calculator Function - MATCHES EXACT PAYROLL PROCESSING LOGIC
 function calculateDashboardPayroll() {
     // Get input values
     const contractType = document.getElementById('calcContractType')?.value || 'permanent';
@@ -1620,35 +1620,47 @@ function calculateDashboardPayroll() {
     // Calculate gross pay
     const grossPay = basicSalary + houseAllowance + transportAllowance;
 
-    // NSSF calculation (exempted for contract employees)
+    // NSSF calculation (exempted for contract employees) - MATCHES config.php constants
     let nssf = 0;
     if (contractType !== 'contract') {
-        nssf = Math.min(grossPay * 0.06, 2160); // 6% max KES 2160 monthly (was 1080 in demo, updated to current rates)
+        const pensionablePay = Math.min(grossPay, 18000); // NSSF_MAX_PENSIONABLE from config
+        nssf = Math.round(pensionablePay * 0.06 * 100) / 100; // 6% with proper rounding
     }
 
-    // Calculate taxable income (gross minus NSSF)
-    const taxableIncome = grossPay - nssf;
+    // Calculate taxable income (gross minus NSSF) - MATCHES functions.php logic
+    const taxableIncome = Math.max(0, grossPay - nssf);
 
-    // Enhanced PAYE calculation with personal relief
+    // PAYE calculation - MATCHES functions.php calculatePAYE() exactly
     let paye = 0;
-    if (taxableIncome > 24000) {
-        paye += Math.min(taxableIncome - 24000, 8333) * 0.25; // 25% for 24,001 - 32,333
-        if (taxableIncome > 32333) {
-            paye += (taxableIncome - 32333) * 0.30; // 30% for above 32,333
+    const payeBrackets = [
+        {min: 0, max: 24000, rate: 0.10},
+        {min: 24001, max: 32333, rate: 0.25},
+        {min: 32334, max: 500000, rate: 0.30},
+        {min: 500001, max: 800000, rate: 0.325},
+        {min: 800001, max: Number.MAX_SAFE_INTEGER, rate: 0.35}
+    ];
+
+    for (let bracket of payeBrackets) {
+        if (taxableIncome > bracket.min) {
+            const taxableAmount = Math.min(taxableIncome, bracket.max) - bracket.min + 1;
+            if (taxableAmount > 0) {
+                paye += taxableAmount * bracket.rate;
+            }
         }
-    } else {
-        paye = taxableIncome * 0.10; // 10% for up to 24,000
     }
-    paye = Math.max(0, paye - 2400); // Personal relief of KES 2,400
 
-    // SHIF (Social Health Insurance Fund) - 2.75% with minimum KES 300
-    const shifCalculated = grossPay * 0.0275; // 2.75% of gross salary
-    const shif = Math.ceil(Math.max(shifCalculated, 300)); // Minimum KES 300, rounded up
+    // Apply personal relief - MATCHES PERSONAL_RELIEF constant
+    paye = Math.max(0, paye - 2400);
+    paye = Math.round(paye * 100) / 100; // Round to 2 decimal places
 
-    // Housing Levy calculation (exempted for contract employees)
+    // SHIF calculation - MATCHES functions.php calculateSHIF() exactly
+    const shifCalculated = grossPay * 0.0275; // SHIF_RATE from config
+    const shif = Math.ceil(Math.max(shifCalculated, 300)); // SHIF_MINIMUM from config
+
+    // Housing Levy calculation (exempted for contract employees) - MATCHES functions.php
     let housingLevy = 0;
     if (contractType !== 'contract') {
-        housingLevy = grossPay * 0.015; // 1.5% of gross pay
+        housingLevy = Math.round(grossPay * 0.015 * 100) / 100; // HOUSING_LEVY_RATE with rounding
     }
 
     // Calculate net pay
