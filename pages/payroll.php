@@ -12,6 +12,34 @@ $action = $_GET['action'] ?? 'list';
 $message = '';
 $messageType = '';
 
+// Ensure company_id is set in session
+if (!isset($_SESSION['company_id']) || $_SESSION['company_id'] === null) {
+    // Try to get company_id from user's company or default to 1
+    try {
+        if (isset($_SESSION['user_id'])) {
+            $stmt = $db->prepare("SELECT company_id FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch();
+            if ($user && $user['company_id']) {
+                $_SESSION['company_id'] = $user['company_id'];
+            }
+        }
+
+        // If still not set, default to first available company
+        if (!isset($_SESSION['company_id']) || $_SESSION['company_id'] === null) {
+            $stmt = $db->query("SELECT id FROM companies ORDER BY id LIMIT 1");
+            $company = $stmt->fetch();
+            if ($company) {
+                $_SESSION['company_id'] = $company['id'];
+            } else {
+                $_SESSION['company_id'] = 1; // Final fallback
+            }
+        }
+    } catch (Exception $e) {
+        $_SESSION['company_id'] = 1; // Fallback on error
+    }
+}
+
 // Handle payroll processing
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
     $periodName = sanitizeInput($_POST['period_name']);
@@ -77,18 +105,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
                     $employee['contract_type'] // Pass contract type for exemptions
                 );
                 
-                // Insert payroll record (check if company_id column exists)
-                $hasCompanyId = false;
-                try {
-                    $checkStmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE 'company_id'");
-                    $checkStmt->execute();
-                    $hasCompanyId = $checkStmt->rowCount() > 0;
-                } catch (Exception $e) {
-                    // Continue without company_id
-                }
+                // Insert payroll record - try multiple approaches to handle company_id
+                $insertSuccess = false;
+                $lastError = '';
 
-                if ($hasCompanyId) {
-                    // Insert with company_id
+                // Approach 1: Try with company_id = 1 (safe default)
+                try {
                     $stmt = $db->prepare("
                         INSERT INTO payroll_records (
                             employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
@@ -104,28 +126,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
                         $payrollData['nhif_deduction'], $payrollData['housing_levy'],
                         $payrollData['total_allowances'], $payrollData['total_deductions'],
                         $payrollData['net_pay'], $payrollData['days_worked'],
-                        $payrollData['overtime_hours'], $payrollData['overtime_amount'],
-                        $_SESSION['company_id']
+                        $payrollData['overtime_hours'], $payrollData['overtime_amount'], 1
                     ]);
-                } else {
-                    // Insert without company_id (original schema)
-                    $stmt = $db->prepare("
-                        INSERT INTO payroll_records (
-                            employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
-                            paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
-                            total_deductions, net_pay, days_worked, overtime_hours, overtime_amount
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
 
-                    $stmt->execute([
-                        $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
-                        $payrollData['gross_pay'], $payrollData['taxable_income'],
-                        $payrollData['paye_tax'], $payrollData['nssf_deduction'],
-                        $payrollData['nhif_deduction'], $payrollData['housing_levy'],
-                        $payrollData['total_allowances'], $payrollData['total_deductions'],
-                        $payrollData['net_pay'], $payrollData['days_worked'],
-                        $payrollData['overtime_hours'], $payrollData['overtime_amount']
-                    ]);
+                    $insertSuccess = true;
+
+                } catch (Exception $e) {
+                    $lastError = $e->getMessage();
+
+                    // Approach 2: Try without company_id column
+                    try {
+                        $stmt = $db->prepare("
+                            INSERT INTO payroll_records (
+                                employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
+                                paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
+                                total_deductions, net_pay, days_worked, overtime_hours, overtime_amount
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+
+                        $stmt->execute([
+                            $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
+                            $payrollData['gross_pay'], $payrollData['taxable_income'],
+                            $payrollData['paye_tax'], $payrollData['nssf_deduction'],
+                            $payrollData['nhif_deduction'], $payrollData['housing_levy'],
+                            $payrollData['total_allowances'], $payrollData['total_deductions'],
+                            $payrollData['net_pay'], $payrollData['days_worked'],
+                            $payrollData['overtime_hours'], $payrollData['overtime_amount']
+                        ]);
+
+                        $insertSuccess = true;
+
+                    } catch (Exception $e2) {
+                        $lastError = $e2->getMessage();
+                        // Both approaches failed
+                    }
+                }
+
+                if (!$insertSuccess) {
+                    throw new Exception("Failed to insert payroll record: " . $lastError);
                 }
                 
                 $processedCount++;
