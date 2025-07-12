@@ -23,61 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
         $message = 'Please fill in all required fields';
         $messageType = 'danger';
     } else {
-        // Validate dates
-        $today = date('Y-m-d');
-        $startDateObj = new DateTime($startDate);
-        $endDateObj = new DateTime($endDate);
-        $payDateObj = new DateTime($payDate);
-        $todayObj = new DateTime($today);
+        // Use corrected date validation
+        require_once 'corrected_date_validation.php';
 
-        // Check if start date is in the future
-        if ($startDateObj > $todayObj) {
-            $message = 'Payroll period start date cannot be in the future. Please select a current or past date.';
-            $messageType = 'danger';
-        }
-        // Check if end date is in the future
-        elseif ($endDateObj > $todayObj) {
-            $message = 'Payroll period end date cannot be in the future. Please select a current or past date.';
-            $messageType = 'danger';
-        }
-        // Check if pay date is too far in the future (allow up to 30 days from today)
-        elseif ($payDateObj > $todayObj->modify('+30 days')) {
-            $message = 'Pay date cannot be more than 30 days in the future.';
-            $messageType = 'danger';
-        }
-        // Check if start date is after end date
-        elseif ($startDateObj > $endDateObj) {
-            $message = 'Period start date cannot be after end date.';
-            $messageType = 'danger';
-        }
-        // Check if pay date is before end date
-        elseif ($payDateObj < $endDateObj) {
-            $message = 'Pay date cannot be before the period end date.';
-            $messageType = 'danger';
-        }
-        // Check for overlapping periods
-        else {
-            $stmt = $db->prepare("
-                SELECT COUNT(*) as count FROM payroll_periods
-                WHERE company_id = ?
-                AND (
-                    (start_date <= ? AND end_date >= ?) OR
-                    (start_date <= ? AND end_date >= ?) OR
-                    (start_date >= ? AND end_date <= ?)
-                )
-            ");
-            $stmt->execute([
-                $_SESSION['company_id'],
-                $startDate, $startDate,  // Check if new start date falls within existing period
-                $endDate, $endDate,      // Check if new end date falls within existing period
-                $startDate, $endDate     // Check if new period encompasses existing period
-            ]);
-            $overlap = $stmt->fetch();
+        $validation = validatePayrollDates($startDate, $endDate, $payDate, $_SESSION['company_id']);
 
-            if ($overlap['count'] > 0) {
-                $message = 'This payroll period overlaps with an existing period. Please check the dates.';
-                $messageType = 'danger';
-            }
+        if (!$validation['valid']) {
+            $message = implode(' ', $validation['errors']);
+            $messageType = 'danger';
         }
     }
 
@@ -359,8 +312,29 @@ if ($action === 'view' && isset($_GET['id'])) {
                             <li><strong>Pay Date:</strong> Must be today or up to 30 days in the future</li>
                             <li><strong>Date Logic:</strong> End date must be after start date, pay date must be after end date</li>
                             <li><strong>Overlapping Periods:</strong> New periods cannot overlap with existing ones</li>
+                            <li><strong>Year Restriction:</strong> Payroll can only be generated for past months within the current year</li>
                         </ul>
                     </div>
+
+                    <?php
+                    // Show suggested dates
+                    require_once 'corrected_date_validation.php';
+                    $suggested = getSuggestedPayrollDates();
+                    if ($suggested): ?>
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-lightbulb"></i> Suggested Period</h6>
+                            <p class="mb-2"><strong><?php echo $suggested['period_name']; ?></strong></p>
+                            <small>
+                                <strong>Start:</strong> <?php echo $suggested['start_date']; ?> |
+                                <strong>End:</strong> <?php echo $suggested['end_date']; ?> |
+                                <strong>Pay Date:</strong> <?php echo $suggested['pay_date']; ?>
+                            </small>
+                            <br>
+                            <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="useSuggestedDates()">
+                                <i class="fas fa-magic"></i> Use These Dates
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     
                     <div class="d-flex justify-content-end">
                         <a href="index.php?page=payroll" class="btn btn-secondary me-2">Cancel</a>
@@ -482,10 +456,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateStartDate() {
         const startDate = startDateInput.value;
         const errorDiv = document.getElementById('start_date_error') || createErrorDiv('start_date_error');
+        const currentYear = new Date().getFullYear();
+        const startYear = new Date(startDate).getFullYear();
 
         if (startDate > today) {
             startDateInput.classList.add('is-invalid');
             errorDiv.textContent = 'Start date cannot be in the future.';
+            errorDiv.style.display = 'block';
+            return false;
+        } else if (startYear !== currentYear) {
+            startDateInput.classList.add('is-invalid');
+            errorDiv.textContent = `Start date must be within the current year (${currentYear}).`;
             errorDiv.style.display = 'block';
             return false;
         } else {
@@ -500,15 +481,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
         const errorDiv = document.getElementById('end_date_error') || createErrorDiv('end_date_error');
+        const currentYear = new Date().getFullYear();
+        const endYear = new Date(endDate).getFullYear();
 
         if (endDate > today) {
             endDateInput.classList.add('is-invalid');
             errorDiv.textContent = 'End date cannot be in the future.';
             errorDiv.style.display = 'block';
             return false;
-        } else if (startDate && endDate < startDate) {
+        } else if (endYear !== currentYear) {
             endDateInput.classList.add('is-invalid');
-            errorDiv.textContent = 'End date cannot be before start date.';
+            errorDiv.textContent = `End date must be within the current year (${currentYear}).`;
+            errorDiv.style.display = 'block';
+            return false;
+        } else if (startDate && endDate <= startDate) {
+            endDateInput.classList.add('is-invalid');
+            errorDiv.textContent = 'End date must be after start date.';
             errorDiv.style.display = 'block';
             return false;
         } else {
@@ -534,9 +522,9 @@ document.addEventListener('DOMContentLoaded', function() {
             errorDiv.textContent = 'Pay date cannot be more than 30 days in the future.';
             errorDiv.style.display = 'block';
             return false;
-        } else if (endDate && payDate < endDate) {
+        } else if (endDate && payDate <= endDate) {
             payDateInput.classList.add('is-invalid');
-            errorDiv.textContent = 'Pay date cannot be before period end date.';
+            errorDiv.textContent = 'Pay date must be after the period end date.';
             errorDiv.style.display = 'block';
             return false;
         } else {
@@ -653,6 +641,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     startDateInput.addEventListener('change', generatePeriodName);
     endDateInput.addEventListener('change', generatePeriodName);
+
+    // Function to use suggested dates
+    window.useSuggestedDates = function() {
+        <?php if ($suggested): ?>
+        document.getElementById('start_date').value = '<?php echo $suggested['start_date']; ?>';
+        document.getElementById('end_date').value = '<?php echo $suggested['end_date']; ?>';
+        document.getElementById('pay_date').value = '<?php echo $suggested['pay_date']; ?>';
+        document.getElementById('period_name').value = '<?php echo $suggested['period_name']; ?>';
+
+        // Trigger validation
+        validateStartDate();
+        validateEndDate();
+        validatePayDate();
+        generatePeriodName();
+        <?php endif; ?>
+    };
 });
 </script>
 
