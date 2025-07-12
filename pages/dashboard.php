@@ -1180,8 +1180,8 @@ body {
         </div>
 
     <!-- END ADMIN ONLY DASHBOARD -->
+<?php } // End admin check ?>
 </div>
-<?php endif; ?>
 
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
