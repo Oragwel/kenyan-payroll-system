@@ -36,14 +36,16 @@ try {
         'payroll_periods' => "CREATE TABLE IF NOT EXISTS payroll_periods (
             id INT PRIMARY KEY AUTO_INCREMENT,
             company_id INT NOT NULL,
-            name VARCHAR(100) NOT NULL,
+            period_name VARCHAR(100) NOT NULL,
             start_date DATE NOT NULL,
             end_date DATE NOT NULL,
             pay_date DATE NOT NULL,
             status ENUM('draft', 'processing', 'completed', 'paid') DEFAULT 'draft',
+            created_by INT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
         )",
         
         'payroll_records' => "CREATE TABLE IF NOT EXISTS payroll_records (
