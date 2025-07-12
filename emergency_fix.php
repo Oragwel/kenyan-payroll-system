@@ -47,7 +47,11 @@ try {
                 $db->exec($sql);
                 echo "✅ SUCCESS\n";
             } catch (Exception $e) {
-                echo "❌ FAILED: " . $e->getMessage() . "\n";
+                if (strpos($e->getMessage(), 'Duplicate column') !== false) {
+                    echo "✅ ALREADY EXISTS\n";
+                } else {
+                    echo "❌ FAILED: " . $e->getMessage() . "\n";
+                }
             }
         } else {
             echo "$column already exists ✅\n";
