@@ -10,8 +10,14 @@ $messageType = '';
 // Handle logout
 if ($action === 'logout') {
     logActivity('logout', 'User logged out');
+
+    // Clear remember me cookie if it exists
+    if (isset($_COOKIE['remember_token'])) {
+        setcookie('remember_token', '', time() - 3600, '/', '', true, true);
+    }
+
     session_destroy();
-    header('Location: index.php?page=auth&action=login');
+    header('Location: landing.html');
     exit;
 }
 

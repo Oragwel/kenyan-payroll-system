@@ -19,13 +19,13 @@ global $secureAuth;
 
 // Check if user is logged in with enhanced security
 if (!isset($_SESSION['user_id']) && $page !== 'auth') {
-    header('Location: landing.html');
+    header('Location: check_remember_me.php');
     exit;
 }
 
 // Validate session security for authenticated users
 if (isset($_SESSION['user_id']) && !$secureAuth->validateSession()) {
-    header('Location: landing.html');
+    header('Location: check_remember_me.php');
     exit;
 }
 
