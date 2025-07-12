@@ -77,24 +77,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
                     $employee['contract_type'] // Pass contract type for exemptions
                 );
                 
-                // Insert payroll record
-                $stmt = $db->prepare("
-                    INSERT INTO payroll_records (
-                        employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
-                        paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
-                        total_deductions, net_pay, days_worked, overtime_hours, overtime_amount
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                
-                $stmt->execute([
-                    $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
-                    $payrollData['gross_pay'], $payrollData['taxable_income'],
-                    $payrollData['paye_tax'], $payrollData['nssf_deduction'],
-                    $payrollData['nhif_deduction'], $payrollData['housing_levy'],
-                    $payrollData['total_allowances'], $payrollData['total_deductions'],
-                    $payrollData['net_pay'], $payrollData['days_worked'],
-                    $payrollData['overtime_hours'], $payrollData['overtime_amount']
-                ]);
+                // Insert payroll record (check if company_id column exists)
+                $hasCompanyId = false;
+                try {
+                    $checkStmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE 'company_id'");
+                    $checkStmt->execute();
+                    $hasCompanyId = $checkStmt->rowCount() > 0;
+                } catch (Exception $e) {
+                    // Continue without company_id
+                }
+
+                if ($hasCompanyId) {
+                    // Insert with company_id
+                    $stmt = $db->prepare("
+                        INSERT INTO payroll_records (
+                            employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
+                            paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
+                            total_deductions, net_pay, days_worked, overtime_hours, overtime_amount, company_id
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+
+                    $stmt->execute([
+                        $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
+                        $payrollData['gross_pay'], $payrollData['taxable_income'],
+                        $payrollData['paye_tax'], $payrollData['nssf_deduction'],
+                        $payrollData['nhif_deduction'], $payrollData['housing_levy'],
+                        $payrollData['total_allowances'], $payrollData['total_deductions'],
+                        $payrollData['net_pay'], $payrollData['days_worked'],
+                        $payrollData['overtime_hours'], $payrollData['overtime_amount'],
+                        $_SESSION['company_id']
+                    ]);
+                } else {
+                    // Insert without company_id (original schema)
+                    $stmt = $db->prepare("
+                        INSERT INTO payroll_records (
+                            employee_id, payroll_period_id, basic_salary, gross_pay, taxable_income,
+                            paye_tax, nssf_deduction, nhif_deduction, housing_levy, total_allowances,
+                            total_deductions, net_pay, days_worked, overtime_hours, overtime_amount
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+
+                    $stmt->execute([
+                        $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
+                        $payrollData['gross_pay'], $payrollData['taxable_income'],
+                        $payrollData['paye_tax'], $payrollData['nssf_deduction'],
+                        $payrollData['nhif_deduction'], $payrollData['housing_levy'],
+                        $payrollData['total_allowances'], $payrollData['total_deductions'],
+                        $payrollData['net_pay'], $payrollData['days_worked'],
+                        $payrollData['overtime_hours'], $payrollData['overtime_amount']
+                    ]);
+                }
                 
                 $processedCount++;
             }
