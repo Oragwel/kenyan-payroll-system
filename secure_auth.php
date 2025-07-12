@@ -12,12 +12,23 @@ require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
 
-// Initialize database connection
-$database = new Database();
-$db = $database->getConnection();
+// Initialize database connection (only if not in installation mode)
+$db = null;
+$secureAuth = null;
 
-// Continue using $db...
-$secureAuth = new SecureAuth($db);
+if (file_exists('.installed') || (isset($_GET['page']) && $_GET['page'] === 'auth')) {
+    try {
+        $database = new Database();
+        $db = $database->getConnection();
+
+        if ($db) {
+            $secureAuth = new SecureAuth($db);
+        }
+    } catch (Exception $e) {
+        // Database not available during installation
+        error_log("Database connection failed during initialization: " . $e->getMessage());
+    }
+}
 
 class SecureAuth {
     private $db;
@@ -26,39 +37,54 @@ class SecureAuth {
     
     public function __construct($database) {
         $this->db = $database;
-        $this->initializeSecurityTables();
+
+        // Only initialize tables if database connection is available
+        if ($this->db) {
+            $this->initializeSecurityTables();
+        }
     }
     
     /**
      * Initialize security-related database tables
      */
     private function initializeSecurityTables() {
-        // Create login attempts table if not exists
-        $sql = "CREATE TABLE IF NOT EXISTS login_attempts (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            ip_address VARCHAR(45) NOT NULL,
-            username VARCHAR(100),
-            success BOOLEAN DEFAULT FALSE,
-            user_agent TEXT,
-            attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_ip_time (ip_address, attempt_time),
-            INDEX idx_username_time (username, attempt_time)
-        )";
-        $this->db->exec($sql);
-        
-        // Create security logs table if not exists
-        $sql = "CREATE TABLE IF NOT EXISTS security_logs (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            user_id INT,
-            action VARCHAR(100) NOT NULL,
-            ip_address VARCHAR(45),
-            user_agent TEXT,
-            details TEXT,
-            severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        )";
-        $this->db->exec($sql);
+        // Skip if no database connection
+        if (!$this->db) {
+            return;
+        }
+
+        try {
+            // Create login attempts table if not exists
+            $sql = "CREATE TABLE IF NOT EXISTS login_attempts (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                ip_address VARCHAR(45) NOT NULL,
+                username VARCHAR(100),
+                success BOOLEAN DEFAULT FALSE,
+                user_agent TEXT,
+                attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_ip_time (ip_address, attempt_time),
+                INDEX idx_username_time (username, attempt_time)
+            )";
+            $this->db->exec($sql);
+
+            // Create security logs table if not exists
+            $sql = "CREATE TABLE IF NOT EXISTS security_logs (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT,
+                event_type VARCHAR(100) NOT NULL,
+                description TEXT,
+                ip_address VARCHAR(45),
+                user_agent TEXT,
+                severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            )";
+            $this->db->exec($sql);
+
+        } catch (Exception $e) {
+            // Log error but don't fail completely
+            error_log("Failed to initialize security tables: " . $e->getMessage());
+        }
     }
     
     /**

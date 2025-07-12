@@ -5,6 +5,13 @@
  */
 
 session_start();
+
+// Check if system is installed
+if (!file_exists('.installed')) {
+    header('Location: install.php');
+    exit;
+}
+
 require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
@@ -23,8 +30,8 @@ if (!isset($_SESSION['user_id']) && $page !== 'auth') {
     exit;
 }
 
-// Validate session security for authenticated users
-if (isset($_SESSION['user_id']) && !$secureAuth->validateSession()) {
+// Validate session security for authenticated users (only if secureAuth is available)
+if (isset($_SESSION['user_id']) && $secureAuth && !$secureAuth->validateSession()) {
     header('Location: check_remember_me.php');
     exit;
 }

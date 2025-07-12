@@ -239,6 +239,17 @@ function setupDatabase() {
     $config = $_SESSION['db_config'];
 
     try {
+        // First, connect without specifying database to create it if needed
+        $dsn = "mysql:host={$config['host']};port={$config['port']};charset=utf8mb4";
+        $pdo = new PDO($dsn, $config['username'], $config['password'], [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ]);
+
+        // Create database if it doesn't exist
+        $dbName = $config['database'];
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+        // Now connect to the specific database
         $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4";
         $pdo = new PDO($dsn, $config['username'], $config['password'], [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION

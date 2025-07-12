@@ -5,6 +5,13 @@
  */
 
 session_start();
+
+// Check if system is installed
+if (!file_exists('.installed')) {
+    header('Location: install.php');
+    exit;
+}
+
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 require_once 'secure_auth.php';
@@ -12,6 +19,12 @@ require_once 'secure_auth.php';
 // Initialize database and auth
 $database = new Database();
 $db = $database->getConnection();
+
+if (!$db) {
+    header('Location: landing.html?error=' . urlencode('Database connection failed. Please check system configuration.'));
+    exit;
+}
+
 $secureAuth = new SecureAuth($db);
 
 // Only process POST requests

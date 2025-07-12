@@ -5,6 +5,13 @@
  */
 
 session_start();
+
+// Check if system is installed
+if (!file_exists('.installed')) {
+    header('Location: install.php');
+    exit;
+}
+
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
