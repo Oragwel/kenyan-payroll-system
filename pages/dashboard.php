@@ -1019,82 +1019,121 @@ body {
             </div>
         </div>
 
-        <!-- Analytics Section -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <h2 class="section-title">
-                    <i class="fas fa-chart-line me-2"></i>
-                    Advanced Analytics & Insights
-                </h2>
-            </div>
-        </div>
-
-        <div class="row mb-5">
-            <!-- Payroll Trends Chart -->
-            <div class="col-lg-8">
-                <div class="modern-card">
-                    <div class="p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-chart-area text-success me-2"></i>
-                            Monthly Payroll Trends (12 Months)
-                        </h5>
-                        <canvas id="payrollTrendsChart" height="100"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Salary Distribution Chart -->
-            <div class="col-lg-4">
-                <div class="modern-card">
-                    <div class="p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-chart-pie text-info me-2"></i>
-                            Salary Distribution
-                        </h5>
-                        <canvas id="salaryDistributionChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-5">
-            <!-- Employee Growth Chart -->
-            <div class="col-lg-6">
-                <div class="modern-card">
-                    <div class="p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-chart-bar text-warning me-2"></i>
-                            Employee Growth Trend
-                        </h5>
-                        <canvas id="employeeGrowthChart" height="150"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Leave Analytics Chart -->
-            <div class="col-lg-6">
-                <div class="modern-card">
-                    <div class="p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-chart-donut text-danger me-2"></i>
-                            Leave Applications Analytics
-                        </h5>
-                        <canvas id="leaveAnalyticsChart" height="150"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statutory Deductions Trend -->
+        <!-- Analytics Section - Collapsible for Performance -->
         <div class="row mb-5">
             <div class="col-12">
                 <div class="modern-card">
-                    <div class="p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-chart-line text-primary me-2"></i>
-                            Statutory Deductions Trend Analysis
-                        </h5>
-                        <canvas id="deductionsTrendChart" height="80"></canvas>
+                    <div class="card-header bg-transparent">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                📊 Advanced Analytics & Insights
+                            </h5>
+                            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#analyticsSection" aria-expanded="false" aria-controls="analyticsSection"
+                                    onclick="loadAnalyticsCharts()">
+                                <i class="fas fa-chart-bar me-1"></i>
+                                View Analytics
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Click to load detailed charts and analytics (improves page performance)
+                        </small>
+                    </div>
+
+                    <div class="collapse" id="analyticsSection">
+                        <div class="card-body">
+                            <!-- Quick Analytics Summary -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                                        <h6>Payroll Trend</h6>
+                                        <small class="text-muted">12-month analysis</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <i class="fas fa-chart-pie fa-2x text-info mb-2"></i>
+                                        <h6>Salary Distribution</h6>
+                                        <small class="text-muted">By employee levels</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <i class="fas fa-chart-bar fa-2x text-warning mb-2"></i>
+                                        <h6>Employee Growth</h6>
+                                        <small class="text-muted">Hiring trends</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <i class="fas fa-calendar-times fa-2x text-danger mb-2"></i>
+                                        <h6>Leave Analytics</h6>
+                                        <small class="text-muted">Application patterns</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts Container - Loaded on Demand -->
+                            <div id="chartsContainer" style="display: none;">
+                                <div class="row mb-4">
+                                    <!-- Payroll Trends Chart -->
+                                    <div class="col-lg-8">
+                                        <div class="border rounded p-3">
+                                            <h6 class="mb-3">
+                                                <i class="fas fa-chart-area text-success me-2"></i>
+                                                Monthly Payroll Trends (12 Months)
+                                            </h6>
+                                            <canvas id="payrollTrendsChart" height="100"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Salary Distribution Chart -->
+                                    <div class="col-lg-4">
+                                        <div class="border rounded p-3">
+                                            <h6 class="mb-3">
+                                                <i class="fas fa-chart-pie text-info me-2"></i>
+                                                Salary Distribution
+                                            </h6>
+                                            <canvas id="salaryDistributionChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Employee Growth Chart -->
+                                    <div class="col-lg-6">
+                                        <div class="border rounded p-3">
+                                            <h6 class="mb-3">
+                                                <i class="fas fa-chart-bar text-warning me-2"></i>
+                                                Employee Growth Trend
+                                            </h6>
+                                            <canvas id="employeeGrowthChart" height="150"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Leave Analytics Chart -->
+                                    <div class="col-lg-6">
+                                        <div class="border rounded p-3">
+                                            <h6 class="mb-3">
+                                                <i class="fas fa-chart-donut text-danger me-2"></i>
+                                                Leave Applications Analytics
+                                            </h6>
+                                            <canvas id="leaveAnalyticsChart" height="150"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Analytics are loaded on-demand to improve dashboard performance
+                                </small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1217,12 +1256,90 @@ const kenyaColors = {
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#374151';
 
-// 1. Payroll Trends Chart
-const payrollTrendsCtx = document.getElementById('payrollTrendsChart');
-if (payrollTrendsCtx) {
-    const payrollData = <?php echo json_encode($monthlyTrends); ?>;
+// Analytics Charts Lazy Loading
+let analyticsChartsLoaded = false;
 
-    new Chart(payrollTrendsCtx, {
+function loadAnalyticsCharts() {
+    if (analyticsChartsLoaded) {
+        return; // Charts already loaded
+    }
+
+    // Show loading indicator
+    const chartsContainer = document.getElementById('chartsContainer');
+    if (chartsContainer) {
+        chartsContainer.style.display = 'block';
+        chartsContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br><small class="text-muted mt-2">Loading analytics...</small></div>';
+
+        // Load charts after a short delay to show loading indicator
+        setTimeout(() => {
+            loadAllCharts();
+            analyticsChartsLoaded = true;
+        }, 500);
+    }
+}
+
+function loadAllCharts() {
+    const chartsContainer = document.getElementById('chartsContainer');
+    if (!chartsContainer) return;
+
+    // Restore original charts HTML
+    chartsContainer.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="border rounded p-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-area text-success me-2"></i>
+                        Monthly Payroll Trends (12 Months)
+                    </h6>
+                    <canvas id="payrollTrendsChart" height="100"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="border rounded p-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-pie text-info me-2"></i>
+                        Salary Distribution
+                    </h6>
+                    <canvas id="salaryDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="border rounded p-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-bar text-warning me-2"></i>
+                        Employee Growth Trend
+                    </h6>
+                    <canvas id="employeeGrowthChart" height="150"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="border rounded p-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-donut text-danger me-2"></i>
+                        Leave Applications Analytics
+                    </h6>
+                    <canvas id="leaveAnalyticsChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Initialize all charts
+    initializePayrollTrendsChart();
+    initializeSalaryDistributionChart();
+    initializeEmployeeGrowthChart();
+    initializeLeaveAnalyticsChart();
+}
+
+// 1. Payroll Trends Chart
+function initializePayrollTrendsChart() {
+    const payrollTrendsCtx = document.getElementById('payrollTrendsChart');
+    if (payrollTrendsCtx) {
+        const payrollData = <?php echo json_encode($monthlyTrends); ?>;
+
+        new Chart(payrollTrendsCtx, {
         type: 'line',
         data: {
             labels: payrollData.map(item => item.month_short || 'N/A'),
@@ -1297,14 +1414,16 @@ if (payrollTrendsCtx) {
             }
         }
     });
+    }
 }
 
 // 2. Salary Distribution Chart
-const salaryDistCtx = document.getElementById('salaryDistributionChart');
-if (salaryDistCtx) {
-    const salaryData = <?php echo json_encode($salaryDistribution); ?>;
+function initializeSalaryDistributionChart() {
+    const salaryDistCtx = document.getElementById('salaryDistributionChart');
+    if (salaryDistCtx) {
+        const salaryData = <?php echo json_encode($salaryDistribution); ?>;
 
-    new Chart(salaryDistCtx, {
+        new Chart(salaryDistCtx, {
         type: 'doughnut',
         data: {
             labels: salaryData.map(item => item.salary_range),
@@ -1345,14 +1464,16 @@ if (salaryDistCtx) {
             }
         }
     });
+    }
 }
 
 // 3. Employee Growth Chart
-const employeeGrowthCtx = document.getElementById('employeeGrowthChart');
-if (employeeGrowthCtx) {
-    const growthData = <?php echo json_encode($employeeGrowth); ?>;
+function initializeEmployeeGrowthChart() {
+    const employeeGrowthCtx = document.getElementById('employeeGrowthChart');
+    if (employeeGrowthCtx) {
+        const growthData = <?php echo json_encode($employeeGrowth); ?>;
 
-    new Chart(employeeGrowthCtx, {
+        new Chart(employeeGrowthCtx, {
         type: 'bar',
         data: {
             labels: growthData.map(item => item.month_name || 'N/A'),
@@ -1399,14 +1520,16 @@ if (employeeGrowthCtx) {
             }
         }
     });
+    }
 }
 
 // 4. Leave Analytics Chart
-const leaveAnalyticsCtx = document.getElementById('leaveAnalyticsChart');
-if (leaveAnalyticsCtx) {
-    const leaveData = <?php echo json_encode($leaveAnalytics); ?>;
+function initializeLeaveAnalyticsChart() {
+    const leaveAnalyticsCtx = document.getElementById('leaveAnalyticsChart');
+    if (leaveAnalyticsCtx) {
+        const leaveData = <?php echo json_encode($leaveAnalytics); ?>;
 
-    new Chart(leaveAnalyticsCtx, {
+        new Chart(leaveAnalyticsCtx, {
         type: 'bar',
         data: {
             labels: leaveData.map(item => item.leave_type || 'N/A'),
@@ -1463,114 +1586,11 @@ if (leaveAnalyticsCtx) {
             }
         }
     });
-}
-
-// 5. Statutory Deductions Trend Chart
-const deductionsTrendCtx = document.getElementById('deductionsTrendChart');
-if (deductionsTrendCtx) {
-    const payrollData = <?php echo json_encode($monthlyTrends); ?>;
-
-    new Chart(deductionsTrendCtx, {
-        type: 'line',
-        data: {
-            labels: payrollData.map(item => item.month_short || 'N/A'),
-            datasets: [{
-                label: 'PAYE Tax',
-                data: payrollData.map(item => parseFloat(item.total_paye) || 0),
-                borderColor: kenyaColors.green,
-                backgroundColor: kenyaColors.green,
-                fill: false,
-                tension: 0.4,
-                pointRadius: 4
-            }, {
-                label: 'NSSF',
-                data: payrollData.map(item => parseFloat(item.total_nssf) || 0),
-                borderColor: kenyaColors.red,
-                backgroundColor: kenyaColors.red,
-                fill: false,
-                tension: 0.4,
-                pointRadius: 4
-            }, {
-                label: 'SHIF',
-                data: payrollData.map(item => parseFloat(item.total_shif) || 0),
-                borderColor: kenyaColors.black,
-                backgroundColor: kenyaColors.black,
-                fill: false,
-                tension: 0.4,
-                pointRadius: 4
-            }, {
-                label: 'Housing Levy',
-                data: payrollData.map(item => parseFloat(item.total_housing) || 0),
-                borderColor: kenyaColors.darkGreen,
-                backgroundColor: kenyaColors.darkGreen,
-                fill: false,
-                tension: 0.4,
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20
-                    }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': KES ' +
-                                   new Intl.NumberFormat().format(context.parsed.y);
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'KES ' + new Intl.NumberFormat().format(value);
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.1)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
+    }
 }
 
 // Chart Animation and Interaction Effects
 document.addEventListener('DOMContentLoaded', function() {
-    // Add loading animation
-    const charts = document.querySelectorAll('canvas');
-    charts.forEach(chart => {
-        chart.style.opacity = '0';
-        chart.style.transform = 'translateY(20px)';
-        chart.style.transition = 'all 0.6s ease';
-
-        setTimeout(() => {
-            chart.style.opacity = '1';
-            chart.style.transform = 'translateY(0)';
-        }, 300);
-    });
 
     // Payroll Calculator Function
     function calculateDashboardPayroll() {
