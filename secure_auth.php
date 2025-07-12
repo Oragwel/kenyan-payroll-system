@@ -142,14 +142,19 @@ class SecureAuth {
      * Log security event
      */
     public function logSecurityEvent($userId, $action, $details = '', $severity = 'medium') {
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-        
-        $stmt = $this->db->prepare("
-            INSERT INTO security_logs (user_id, action, ip_address, user_agent, details, severity) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$userId, $action, $ipAddress, $userAgent, $details, $severity]);
+        try {
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '';
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+            $stmt = $this->db->prepare("
+                INSERT INTO security_logs (user_id, event_type, ip_address, user_agent, description, severity)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$userId, $action, $ipAddress, $userAgent, $details, $severity]);
+        } catch (Exception $e) {
+            // Log error but don't fail the authentication process
+            error_log("Failed to log security event: " . $e->getMessage());
+        }
     }
     
     /**
