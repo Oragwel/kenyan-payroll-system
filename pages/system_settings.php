@@ -1,13 +1,15 @@
 <?php
 /**
  * System Settings Page
- * 
+ *
  * Manage system-wide settings and configurations
  */
 
 // Check if user is logged in and is admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: index.php?page=auth');
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    // Use JavaScript redirect to avoid header issues
+    echo '<script>window.location.href = "index.php?page=auth";</script>';
+    echo '<div class="alert alert-warning">Access denied. Redirecting to login...</div>';
     exit;
 }
 
