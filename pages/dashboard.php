@@ -787,6 +787,82 @@ body {
                 </div>
             </div>
         </div>
+        <!-- Payroll Calculator Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="section-title">
+                    <i class="fas fa-calculator me-2"></i>
+                    🇰🇪 Quick Payroll Calculator
+                </h2>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-lg-6 mx-auto">
+                <div class="kenyan-card">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0 text-center">
+                            <i class="fas fa-calculator text-success me-2"></i>
+                            Calculate Net Salary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Basic Salary (KES)</label>
+                                    <input type="number" class="form-control" id="calcBasicSalary"
+                                           value="50000" onchange="calculateDashboardPayroll()" placeholder="Enter basic salary">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Allowances (KES)</label>
+                                    <input type="number" class="form-control" id="calcAllowances"
+                                           value="15000" onchange="calculateDashboardPayroll()" placeholder="Enter allowances">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bg-light p-3 rounded h-100">
+                                    <h6 class="text-center mb-3">Salary Breakdown</h6>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span><strong>Gross Pay:</strong></span>
+                                        <strong class="text-primary" id="calcGrossPay">KES 65,000</strong>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>PAYE Tax:</span>
+                                        <span class="text-danger" id="calcPaye">KES 8,750</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>NSSF:</span>
+                                        <span class="text-warning" id="calcNssf">KES 2,160</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>SHIF:</span>
+                                        <span class="text-info" id="calcShif">KES 1,788</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span>Housing Levy:</span>
+                                        <span class="text-secondary" id="calcHousing">KES 975</span>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between">
+                                        <strong class="text-success">Net Pay:</strong>
+                                        <strong class="text-success fs-5" id="calcNetPay">KES 51,327</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Calculations based on 2024 Kenyan tax rates and statutory deductions
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Statutory Deductions Section -->
         <div class="row mb-5">
             <div class="col-12">
@@ -1077,67 +1153,6 @@ body {
                 </div>
             </div>
             <div class="col-lg-4">
-                <!-- Payroll Calculator Widget -->
-                <div class="kenyan-card mb-4">
-                    <div class="card-header bg-transparent">
-                        <h5 class="mb-0">
-                            <i class="fas fa-calculator text-success me-2"></i>
-                            🇰🇪 Payroll Calculator
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="mb-3">
-                                    <label class="form-label small">Basic Salary (KES)</label>
-                                    <input type="number" class="form-control form-control-sm" id="calcBasicSalary"
-                                           value="50000" onchange="calculateDashboardPayroll()">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small">Allowances (KES)</label>
-                                    <input type="number" class="form-control form-control-sm" id="calcAllowances"
-                                           value="15000" onchange="calculateDashboardPayroll()">
-                                </div>
-
-                                <div class="bg-light p-2 rounded">
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Gross Pay:</span>
-                                        <strong id="calcGrossPay">KES 65,000</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between small text-danger">
-                                        <span>PAYE Tax:</span>
-                                        <span id="calcPaye">KES 8,750</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small text-warning">
-                                        <span>NSSF:</span>
-                                        <span id="calcNssf">KES 2,160</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small text-info">
-                                        <span>SHIF:</span>
-                                        <span id="calcShif">KES 1,788</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small text-secondary">
-                                        <span>Housing Levy:</span>
-                                        <span id="calcHousing">KES 975</span>
-                                    </div>
-                                    <hr class="my-2">
-                                    <div class="d-flex justify-content-between">
-                                        <strong>Net Pay:</strong>
-                                        <strong class="text-success" id="calcNetPay">KES 51,327</strong>
-                                    </div>
-                                </div>
-
-                                <div class="mt-3">
-                                    <small class="text-muted">
-                                        <i class="fas fa-info-circle"></i>
-                                        Quick calculation using 2024 Kenyan tax rates
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Quick Actions -->
                 <div class="kenyan-card">
                     <div class="card-header bg-transparent">
