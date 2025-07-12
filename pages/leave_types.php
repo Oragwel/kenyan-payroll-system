@@ -70,6 +70,15 @@ function saveLeaveType($data, $action) {
     }
     
     try {
+        // Check which columns exist
+        $stmt = $db->prepare("SHOW COLUMNS FROM leave_types");
+        $stmt->execute();
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $hasIsPaid = in_array('is_paid', $columns);
+        $hasMaxCarryForward = in_array('max_carry_forward', $columns);
+        $hasDescription = in_array('description', $columns);
+
         if ($action === 'add') {
             // Check if leave type already exists
             $stmt = $db->prepare("SELECT id FROM leave_types WHERE name = ? AND company_id = ?");
@@ -77,24 +86,56 @@ function saveLeaveType($data, $action) {
             if ($stmt->fetch()) {
                 return ['message' => 'Leave type already exists', 'type' => 'danger'];
             }
-            
-            $stmt = $db->prepare("
-                INSERT INTO leave_types (company_id, name, days_per_year, is_paid, carry_forward, max_carry_forward, description) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([$_SESSION['company_id'], $name, $daysPerYear, $isPaid, $carryForward, $maxCarryForward, $description]);
-            
+
+            // Build dynamic INSERT query based on available columns
+            $insertColumns = ['company_id', 'name', 'days_per_year', 'carry_forward'];
+            $insertValues = [$_SESSION['company_id'], $name, $daysPerYear, $carryForward];
+
+            if ($hasIsPaid) {
+                $insertColumns[] = 'is_paid';
+                $insertValues[] = $isPaid;
+            }
+            if ($hasMaxCarryForward) {
+                $insertColumns[] = 'max_carry_forward';
+                $insertValues[] = $maxCarryForward;
+            }
+            if ($hasDescription) {
+                $insertColumns[] = 'description';
+                $insertValues[] = $description;
+            }
+
+            $sql = "INSERT INTO leave_types (" . implode(', ', $insertColumns) . ") VALUES (" . str_repeat('?,', count($insertColumns) - 1) . "?)";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($insertValues);
+
             logActivity('leave_type_add', "Added leave type: $name ($daysPerYear days/year)");
             return ['message' => 'Leave type created successfully', 'type' => 'success'];
-            
+
         } else { // edit
-            $stmt = $db->prepare("
-                UPDATE leave_types 
-                SET name = ?, days_per_year = ?, is_paid = ?, carry_forward = ?, max_carry_forward = ?, description = ?
-                WHERE id = ? AND company_id = ?
-            ");
-            $stmt->execute([$name, $daysPerYear, $isPaid, $carryForward, $maxCarryForward, $description, $leaveTypeId, $_SESSION['company_id']]);
-            
+            // Build dynamic UPDATE query based on available columns
+            $updateParts = ['name = ?', 'days_per_year = ?', 'carry_forward = ?'];
+            $updateValues = [$name, $daysPerYear, $carryForward];
+
+            if ($hasIsPaid) {
+                $updateParts[] = 'is_paid = ?';
+                $updateValues[] = $isPaid;
+            }
+            if ($hasMaxCarryForward) {
+                $updateParts[] = 'max_carry_forward = ?';
+                $updateValues[] = $maxCarryForward;
+            }
+            if ($hasDescription) {
+                $updateParts[] = 'description = ?';
+                $updateValues[] = $description;
+            }
+
+            $updateValues[] = $leaveTypeId;
+            $updateValues[] = $_SESSION['company_id'];
+
+            $sql = "UPDATE leave_types SET " . implode(', ', $updateParts) . " WHERE id = ? AND company_id = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($updateValues);
+
             logActivity('leave_type_edit', "Updated leave type: $name ($daysPerYear days/year)");
             return ['message' => 'Leave type updated successfully', 'type' => 'success'];
         }
@@ -144,31 +185,40 @@ function deleteLeaveType($leaveTypeId) {
  */
 function toggleLeaveTypeStatus($leaveTypeId) {
     global $db;
-    
+
     try {
+        // Check if is_active column exists
+        $stmt = $db->prepare("SHOW COLUMNS FROM leave_types LIKE 'is_active'");
+        $stmt->execute();
+        $hasIsActiveColumn = $stmt->rowCount() > 0;
+
+        if (!$hasIsActiveColumn) {
+            return ['message' => 'Status management not available. Please refresh the page.', 'type' => 'warning'];
+        }
+
         $stmt = $db->prepare("SELECT name, is_active FROM leave_types WHERE id = ? AND company_id = ?");
         $stmt->execute([$leaveTypeId, $_SESSION['company_id']]);
         $leaveType = $stmt->fetch();
-        
+
         if (!$leaveType) {
             return ['message' => 'Leave type not found', 'type' => 'danger'];
         }
-        
+
         $newStatus = $leaveType['is_active'] ? 0 : 1;
         $stmt = $db->prepare("UPDATE leave_types SET is_active = ? WHERE id = ? AND company_id = ?");
         $stmt->execute([$newStatus, $leaveTypeId, $_SESSION['company_id']]);
-        
+
         $statusText = $newStatus ? 'activated' : 'deactivated';
         logActivity('leave_type_status_change', "Leave type '{$leaveType['name']}' $statusText");
-        
+
         return ['message' => "Leave type {$statusText} successfully", 'type' => 'success'];
-        
+
     } catch (Exception $e) {
         return ['message' => 'Error updating leave type status: ' . $e->getMessage(), 'type' => 'danger'];
     }
 }
 
-// Create leave_types table if it doesn't exist
+// Create leave_types table if it doesn't exist and add missing columns
 try {
     $db->exec("
         CREATE TABLE IF NOT EXISTS leave_types (
@@ -186,6 +236,28 @@ try {
             FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
         )
     ");
+
+    // Add missing columns to existing table if they don't exist
+    $columns_to_add = [
+        'is_paid' => 'ALTER TABLE leave_types ADD COLUMN is_paid BOOLEAN DEFAULT TRUE',
+        'max_carry_forward' => 'ALTER TABLE leave_types ADD COLUMN max_carry_forward INT DEFAULT 0',
+        'description' => 'ALTER TABLE leave_types ADD COLUMN description TEXT',
+        'is_active' => 'ALTER TABLE leave_types ADD COLUMN is_active BOOLEAN DEFAULT TRUE',
+        'updated_at' => 'ALTER TABLE leave_types ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+    ];
+
+    foreach ($columns_to_add as $column => $sql) {
+        try {
+            // Check if column exists
+            $stmt = $db->prepare("SHOW COLUMNS FROM leave_types LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->rowCount() == 0) {
+                $db->exec($sql);
+            }
+        } catch (Exception $e) {
+            // Column might already exist or other error, continue
+        }
+    }
     
     // Insert default Kenyan leave types if none exist
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM leave_types WHERE company_id = ?");
@@ -226,19 +298,39 @@ try {
 
 // Get data based on action
 if ($action === 'list' || $action === 'add' || $action === 'edit') {
+    // Check if is_active column exists
+    $hasIsActiveColumn = false;
+    try {
+        $stmt = $db->prepare("SHOW COLUMNS FROM leave_types LIKE 'is_active'");
+        $stmt->execute();
+        $hasIsActiveColumn = $stmt->rowCount() > 0;
+    } catch (Exception $e) {
+        // Continue without is_active column
+    }
+
     // Get leave types with usage statistics
+    $orderBy = $hasIsActiveColumn ? "ORDER BY lt.is_active DESC, lt.name" : "ORDER BY lt.name";
+
     $stmt = $db->prepare("
-        SELECT lt.*, 
+        SELECT lt.*,
                COUNT(la.id) as applications_count,
                SUM(CASE WHEN la.status = 'approved' THEN la.days_requested ELSE 0 END) as total_days_used
         FROM leave_types lt
         LEFT JOIN leave_applications la ON lt.id = la.leave_type_id
         WHERE lt.company_id = ?
         GROUP BY lt.id
-        ORDER BY lt.is_active DESC, lt.name
+        $orderBy
     ");
     $stmt->execute([$_SESSION['company_id']]);
     $leaveTypes = $stmt->fetchAll();
+
+    // Add default values for missing columns
+    foreach ($leaveTypes as &$type) {
+        if (!isset($type['is_paid'])) $type['is_paid'] = 1;
+        if (!isset($type['is_active'])) $type['is_active'] = 1;
+        if (!isset($type['max_carry_forward'])) $type['max_carry_forward'] = 0;
+        if (!isset($type['description'])) $type['description'] = '';
+    }
 }
 
 if ($action === 'edit' && $leaveTypeId) {
