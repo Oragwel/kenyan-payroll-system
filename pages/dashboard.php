@@ -1180,7 +1180,6 @@ body {
         </div>
 
     <!-- END ADMIN ONLY DASHBOARD -->
-<?php } // End admin check ?>
 </div>
 
 <!-- Chart.js Library -->
