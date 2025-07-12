@@ -139,7 +139,7 @@
                         <i class="fas fa-building"></i> Company Settings
                     </a>
                     
-                    <a href="index.php?page=users" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'users' ? 'active' : ''; ?>">
+                    <a href="index.php?page=user_management" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'user_management' ? 'active' : ''; ?>">
                         <i class="fas fa-users-cog"></i> User Management
                     </a>
                     
