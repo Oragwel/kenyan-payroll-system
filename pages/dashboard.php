@@ -810,44 +810,64 @@ body {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Basic Salary (KES)</label>
-                                    <input type="number" class="form-control" id="calcBasicSalary"
-                                           value="50000" onchange="calculateDashboardPayroll()" placeholder="Enter basic salary">
+                                    <label class="form-label">Contract Type</label>
+                                    <select class="form-control" id="calcContractType" onchange="calculateDashboardPayroll()">
+                                        <option value="permanent">Permanent Employee</option>
+                                        <option value="contract">Contract (NSSF & Housing Levy Exempt)</option>
+                                        <option value="casual">Casual Labourer</option>
+                                        <option value="intern">Intern</option>
+                                    </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Allowances (KES)</label>
-                                    <input type="number" class="form-control" id="calcAllowances"
-                                           value="15000" onchange="calculateDashboardPayroll()" placeholder="Enter allowances">
+                                    <label class="form-label">Basic Salary (KES)</label>
+                                    <input type="number" class="form-control" id="calcBasicSalary"
+                                           value="75000" onchange="calculateDashboardPayroll()" placeholder="Enter basic salary">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">House Allowance (KES)</label>
+                                    <input type="number" class="form-control" id="calcHouseAllowance"
+                                           value="20000" onchange="calculateDashboardPayroll()" placeholder="Enter house allowance">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Transport Allowance (KES)</label>
+                                    <input type="number" class="form-control" id="calcTransportAllowance"
+                                           value="8000" onchange="calculateDashboardPayroll()" placeholder="Enter transport allowance">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="bg-light p-3 rounded h-100">
-                                    <h6 class="text-center mb-3">Salary Breakdown</h6>
+                                    <h6 class="text-center mb-3">🇰🇪 Kenyan Statutory Calculations</h6>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span><strong>Gross Pay:</strong></span>
-                                        <strong class="text-primary" id="calcGrossPay">KES 65,000</strong>
+                                        <strong class="text-primary" id="calcGrossPay">KES 103,000</strong>
                                     </div>
                                     <hr class="my-2">
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>PAYE Tax:</span>
-                                        <span class="text-danger" id="calcPaye">KES 8,750</span>
+                                        <span class="text-danger" id="calcPaye">KES 18,180</span>
                                     </div>
                                     <div class="d-flex justify-content-between small mb-1">
-                                        <span>NSSF:</span>
-                                        <span class="text-warning" id="calcNssf">KES 2,160</span>
+                                        <span>NSSF (6%):</span>
+                                        <span class="text-warning" id="calcNssf">KES 5,400</span>
                                     </div>
                                     <div class="d-flex justify-content-between small mb-1">
-                                        <span>SHIF:</span>
-                                        <span class="text-info" id="calcShif">KES 1,788</span>
+                                        <span>SHIF (2.75%):</span>
+                                        <span class="text-info" id="calcShif">KES 2,833</span>
                                     </div>
                                     <div class="d-flex justify-content-between small mb-2">
-                                        <span>Housing Levy:</span>
-                                        <span class="text-secondary" id="calcHousing">KES 975</span>
+                                        <span>Housing Levy (1.5%):</span>
+                                        <span class="text-secondary" id="calcHousing">KES 1,545</span>
                                     </div>
                                     <hr class="my-2">
                                     <div class="d-flex justify-content-between">
                                         <strong class="text-success">Net Pay:</strong>
-                                        <strong class="text-success fs-5" id="calcNetPay">KES 51,327</strong>
+                                        <strong class="text-success fs-5" id="calcNetPay">KES 75,042</strong>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted" id="calcExemptions">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span id="exemptionText">All statutory deductions apply</span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -1589,65 +1609,83 @@ function initializeLeaveAnalyticsChart() {
     }
 }
 
-// Payroll Calculator Function - Global scope for HTML onchange events
+// Enhanced Payroll Calculator Function - Implements demo logic with contract types and exemptions
 function calculateDashboardPayroll() {
+    // Get input values
+    const contractType = document.getElementById('calcContractType')?.value || 'permanent';
     const basicSalary = parseFloat(document.getElementById('calcBasicSalary')?.value) || 0;
-    const allowances = parseFloat(document.getElementById('calcAllowances')?.value) || 0;
+    const houseAllowance = parseFloat(document.getElementById('calcHouseAllowance')?.value) || 0;
+    const transportAllowance = parseFloat(document.getElementById('calcTransportAllowance')?.value) || 0;
 
     // Calculate gross pay
-    const grossPay = basicSalary + allowances;
+    const grossPay = basicSalary + houseAllowance + transportAllowance;
 
-    // Calculate PAYE Tax (2024 Kenyan rates)
+    // NSSF calculation (exempted for contract employees)
+    let nssf = 0;
+    if (contractType !== 'contract') {
+        nssf = Math.min(grossPay * 0.06, 2160); // 6% max KES 2160 monthly (was 1080 in demo, updated to current rates)
+    }
+
+    // Calculate taxable income (gross minus NSSF)
+    const taxableIncome = grossPay - nssf;
+
+    // Enhanced PAYE calculation with personal relief
     let paye = 0;
-    let taxableIncome = grossPay;
-
-    if (taxableIncome > 800000) {
-        paye += (taxableIncome - 800000) * 0.35;
-        taxableIncome = 800000;
-    }
-    if (taxableIncome > 500000) {
-        paye += (taxableIncome - 500000) * 0.325;
-        taxableIncome = 500000;
-    }
-    if (taxableIncome > 32333) {
-        paye += (taxableIncome - 32333) * 0.30;
-        taxableIncome = 32333;
-    }
     if (taxableIncome > 24000) {
-        paye += (taxableIncome - 24000) * 0.25;
-        taxableIncome = 24000;
+        paye += Math.min(taxableIncome - 24000, 8333) * 0.25; // 25% for 24,001 - 32,333
+        if (taxableIncome > 32333) {
+            paye += (taxableIncome - 32333) * 0.30; // 30% for above 32,333
+        }
+    } else {
+        paye = taxableIncome * 0.10; // 10% for up to 24,000
     }
-    if (taxableIncome > 0) {
-        paye += taxableIncome * 0.10;
+    paye = Math.max(0, paye - 2400); // Personal relief of KES 2,400
+
+    // SHIF (Social Health Insurance Fund) - 2.75% with minimum KES 300
+    const shifCalculated = grossPay * 0.0275; // 2.75% of gross salary
+    const shif = Math.ceil(Math.max(shifCalculated, 300)); // Minimum KES 300, rounded up
+
+    // Housing Levy calculation (exempted for contract employees)
+    let housingLevy = 0;
+    if (contractType !== 'contract') {
+        housingLevy = grossPay * 0.015; // 1.5% of gross pay
     }
-
-    // Calculate NSSF (6% of gross, max 2160)
-    const nssf = Math.min(grossPay * 0.06, 2160);
-
-    // Calculate SHIF (2.75% of gross)
-    const shif = grossPay * 0.0275;
-
-    // Calculate Housing Levy (1.5% of gross)
-    const housingLevy = grossPay * 0.015;
 
     // Calculate net pay
-    const totalDeductions = paye + nssf + shif + housingLevy;
-    const netPay = grossPay - totalDeductions;
+    const netPay = grossPay - paye - nssf - shif - housingLevy;
 
-    // Update display with null checks
+    // Update display with null checks and exemption indicators
     const grossPayEl = document.getElementById('calcGrossPay');
     const payeEl = document.getElementById('calcPaye');
     const nssfEl = document.getElementById('calcNssf');
     const shifEl = document.getElementById('calcShif');
     const housingEl = document.getElementById('calcHousing');
     const netPayEl = document.getElementById('calcNetPay');
+    const exemptionTextEl = document.getElementById('exemptionText');
 
     if (grossPayEl) grossPayEl.textContent = 'KES ' + grossPay.toLocaleString();
     if (payeEl) payeEl.textContent = 'KES ' + Math.round(paye).toLocaleString();
-    if (nssfEl) nssfEl.textContent = 'KES ' + Math.round(nssf).toLocaleString();
-    if (shifEl) shifEl.textContent = 'KES ' + Math.round(shif).toLocaleString();
-    if (housingEl) housingEl.textContent = 'KES ' + Math.round(housingLevy).toLocaleString();
+    if (nssfEl) nssfEl.textContent = 'KES ' + Math.round(nssf).toLocaleString() + (contractType === 'contract' ? ' (Exempted)' : '');
+    if (shifEl) shifEl.textContent = 'KES ' + shif.toLocaleString();
+    if (housingEl) housingEl.textContent = 'KES ' + Math.round(housingLevy).toLocaleString() + (contractType === 'contract' ? ' (Exempted)' : '');
     if (netPayEl) netPayEl.textContent = 'KES ' + Math.round(netPay).toLocaleString();
+
+    // Update exemption text based on contract type
+    if (exemptionTextEl) {
+        switch (contractType) {
+            case 'contract':
+                exemptionTextEl.textContent = 'Contract employee: NSSF & Housing Levy exempted';
+                break;
+            case 'casual':
+                exemptionTextEl.textContent = 'Casual labourer: All statutory deductions apply';
+                break;
+            case 'intern':
+                exemptionTextEl.textContent = 'Intern: All statutory deductions apply';
+                break;
+            default:
+                exemptionTextEl.textContent = 'Permanent employee: All statutory deductions apply';
+        }
+    }
 }
 
 // Chart Animation and Interaction Effects
@@ -1656,17 +1694,32 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateDashboardPayroll();
 
     // Add event listeners for real-time calculation
+    const contractTypeInput = document.getElementById('calcContractType');
     const basicSalaryInput = document.getElementById('calcBasicSalary');
-    const allowancesInput = document.getElementById('calcAllowances');
+    const houseAllowanceInput = document.getElementById('calcHouseAllowance');
+    const transportAllowanceInput = document.getElementById('calcTransportAllowance');
 
+    // Contract type dropdown
+    if (contractTypeInput) {
+        contractTypeInput.addEventListener('change', calculateDashboardPayroll);
+    }
+
+    // Basic salary input
     if (basicSalaryInput) {
         basicSalaryInput.addEventListener('input', calculateDashboardPayroll);
         basicSalaryInput.addEventListener('keyup', calculateDashboardPayroll);
     }
 
-    if (allowancesInput) {
-        allowancesInput.addEventListener('input', calculateDashboardPayroll);
-        allowancesInput.addEventListener('keyup', calculateDashboardPayroll);
+    // House allowance input
+    if (houseAllowanceInput) {
+        houseAllowanceInput.addEventListener('input', calculateDashboardPayroll);
+        houseAllowanceInput.addEventListener('keyup', calculateDashboardPayroll);
+    }
+
+    // Transport allowance input
+    if (transportAllowanceInput) {
+        transportAllowanceInput.addEventListener('input', calculateDashboardPayroll);
+        transportAllowanceInput.addEventListener('keyup', calculateDashboardPayroll);
     }
 });
 </script>
