@@ -32,10 +32,14 @@ function checkSystemInstallation() {
     
     // Check 3: Database connection
     try {
-        require_once 'config/database.php';
+        // Only include database.php if it exists and we haven't already included it
+        if (!class_exists('Database')) {
+            require_once 'config/database.php';
+        }
+
         $database = new Database();
         $db = $database->getConnection();
-        
+
         if (!$db) {
             $result['errors'][] = 'Cannot connect to database';
             return $result;
@@ -134,15 +138,49 @@ function getInstallationStatusMessage($checkResult) {
  * Force redirect to installer if system is not properly installed
  */
 function enforceInstallationCheck() {
+    // Prevent redirect loops by checking current script
+    $currentScript = basename($_SERVER['SCRIPT_NAME']);
+    $allowedScripts = [
+        'install.php',
+        'installation_status.php',
+        'clean_install.php',
+        'migrate_activity_logs.php',
+        'migrate_banking_fields.php'
+    ];
+
+    // Don't redirect if we're already on an installation-related page
+    if (in_array($currentScript, $allowedScripts)) {
+        return;
+    }
+
+    // Check if we've already redirected recently (prevent loops)
+    if (isset($_SESSION['installation_redirect_count'])) {
+        $_SESSION['installation_redirect_count']++;
+        if ($_SESSION['installation_redirect_count'] > 3) {
+            // Too many redirects, show error instead
+            die('
+                <h2>Installation Error</h2>
+                <p>The system appears to be in a redirect loop. Please manually access the installer:</p>
+                <p><a href="install.php">Click here to access the installer</a></p>
+                <p><a href="installation_status.php">Check installation status</a></p>
+            ');
+        }
+    } else {
+        $_SESSION['installation_redirect_count'] = 1;
+    }
+
     $installCheck = checkSystemInstallation();
-    
+
     if (!$installCheck['installed']) {
         // Log the incomplete installation attempt
         error_log("Incomplete installation detected: " . json_encode($installCheck));
-        
+
         // Redirect to installer
         header('Location: install.php?incomplete=1');
         exit;
+    } else {
+        // Installation is complete, clear redirect counter
+        unset($_SESSION['installation_redirect_count']);
     }
 }
 
