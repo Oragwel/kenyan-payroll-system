@@ -50,36 +50,72 @@ $themeSettings = getThemeSettings();
  */
 function getCMSSettings() {
     global $db;
-    
-    $stmt = $db->prepare("
-        SELECT setting_key, setting_value, setting_type 
-        FROM cms_settings 
-        WHERE setting_category = 'landing_page'
-    ");
-    $stmt->execute();
-    $results = $stmt->fetchAll();
-    
-    $settings = [];
-    foreach ($results as $row) {
-        $settings[$row['setting_key']] = $row['setting_value'];
+
+    try {
+        // Check if cms_settings table exists
+        $stmt = $db->query("SHOW TABLES LIKE 'cms_settings'");
+        if ($stmt->rowCount() == 0) {
+            // Table doesn't exist, return default settings
+            return [
+                'site_title' => 'Kenyan Payroll Management System',
+                'site_description' => 'Professional payroll management for Kenyan businesses',
+                'hero_title' => 'Streamline Your Payroll Process',
+                'hero_subtitle' => 'Comprehensive payroll management system designed for Kenyan employment laws and regulations',
+                'company_name' => 'Your Company Name',
+                'contact_email' => 'info@yourcompany.com',
+                'contact_phone' => '+254 700 000 000'
+            ];
+        }
+
+        $stmt = $db->prepare("
+            SELECT setting_key, setting_value, setting_type
+            FROM cms_settings
+            WHERE setting_category = 'landing_page'
+        ");
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+
+        $settings = [];
+        foreach ($results as $row) {
+            $settings[$row['setting_key']] = $row['setting_value'];
+        }
+
+        // Default values if not set
+        $defaults = [
+            'hero_title' => 'Kenyan Payroll Management System',
+            'hero_subtitle' => 'Comprehensive payroll solution designed for Kenyan employment structure and statutory compliance requirements.',
+            'feature_1_title' => 'Statutory Compliance',
+            'feature_1_description' => 'Automated PAYE, NSSF, SHIF & Housing Levy calculations',
+            'feature_2_title' => 'Employee Management',
+            'feature_2_description' => 'Complete employee lifecycle management',
+            'feature_3_title' => 'Advanced Reporting',
+            'feature_3_description' => 'Generate comprehensive payroll and statutory reports',
+            'feature_4_title' => 'Mobile Responsive',
+            'feature_4_description' => 'Access your payroll system from any device',
+            'footer_text' => '🇰🇪 Proudly Kenyan • Built for Kenya • Compliant with Kenyan Law 🇰🇪'
+        ];
+
+        return array_merge($defaults, $settings);
+
+    } catch (Exception $e) {
+        // Handle database errors gracefully
+        error_log("CMS Settings error: " . $e->getMessage());
+
+        // Return default settings
+        return [
+            'hero_title' => 'Kenyan Payroll Management System',
+            'hero_subtitle' => 'Comprehensive payroll solution designed for Kenyan employment structure and statutory compliance requirements.',
+            'feature_1_title' => 'Statutory Compliance',
+            'feature_1_description' => 'Automated PAYE, NSSF, SHIF & Housing Levy calculations',
+            'feature_2_title' => 'Employee Management',
+            'feature_2_description' => 'Complete employee lifecycle management',
+            'feature_3_title' => 'Advanced Reporting',
+            'feature_3_description' => 'Generate comprehensive payroll and statutory reports',
+            'feature_4_title' => 'Mobile Responsive',
+            'feature_4_description' => 'Access your payroll system from any device',
+            'footer_text' => '🇰🇪 Proudly Kenyan • Built for Kenya • Compliant with Kenyan Law 🇰🇪'
+        ];
     }
-    
-    // Default values if not set
-    $defaults = [
-        'hero_title' => 'Kenyan Payroll Management System',
-        'hero_subtitle' => 'Comprehensive payroll solution designed for Kenyan employment structure and statutory compliance requirements.',
-        'feature_1_title' => 'Statutory Compliance',
-        'feature_1_description' => 'Automated PAYE, NSSF, SHIF & Housing Levy calculations',
-        'feature_2_title' => 'Employee Management',
-        'feature_2_description' => 'Complete employee lifecycle management',
-        'feature_3_title' => 'Advanced Reporting',
-        'feature_3_description' => 'Generate comprehensive payroll and statutory reports',
-        'feature_4_title' => 'Mobile Responsive',
-        'feature_4_description' => 'Access your payroll system from any device',
-        'footer_text' => '🇰🇪 Proudly Kenyan • Built for Kenya • Compliant with Kenyan Law 🇰🇪'
-    ];
-    
-    return array_merge($defaults, $settings);
 }
 
 /**
@@ -87,32 +123,62 @@ function getCMSSettings() {
  */
 function getCompanyInfo() {
     global $db;
-    
-    $stmt = $db->prepare("
-        SELECT setting_key, setting_value 
-        FROM cms_settings 
-        WHERE setting_category = 'company_info'
-    ");
-    $stmt->execute();
-    $results = $stmt->fetchAll();
-    
-    $info = [];
-    foreach ($results as $row) {
-        $info[$row['setting_key']] = $row['setting_value'];
+
+    try {
+        // Check if cms_settings table exists
+        $stmt = $db->query("SHOW TABLES LIKE 'cms_settings'");
+        if ($stmt->rowCount() == 0) {
+            // Table doesn't exist, return default company info
+            return [
+                'company_name' => 'Your Company Name',
+                'company_address' => 'Your Company Address',
+                'company_phone' => '+254 700 000 000',
+                'company_email' => 'info@yourcompany.com',
+                'company_website' => 'www.yourcompany.com'
+            ];
+        }
+
+        $stmt = $db->prepare("
+            SELECT setting_key, setting_value
+            FROM cms_settings
+            WHERE setting_category = 'company_info'
+        ");
+        $stmt->execute();
+        $results = $stmt->fetchAll();
+
+        $info = [];
+        foreach ($results as $row) {
+            $info[$row['setting_key']] = $row['setting_value'];
+        }
+
+        // Default values
+        $defaults = [
+            'company_name' => 'Your Company Name',
+            'company_address' => 'Nairobi, Kenya',
+            'company_phone' => '+254 700 000 000',
+            'company_email' => 'info@yourcompany.co.ke',
+            'company_website' => 'www.yourcompany.co.ke',
+            'company_logo' => '',
+            'company_description' => 'Leading payroll management solutions in Kenya'
+        ];
+
+        return array_merge($defaults, $info);
+
+    } catch (Exception $e) {
+        // Handle database errors gracefully
+        error_log("CMS Company Info error: " . $e->getMessage());
+
+        // Return default company info
+        return [
+            'company_name' => 'Your Company Name',
+            'company_address' => 'Nairobi, Kenya',
+            'company_phone' => '+254 700 000 000',
+            'company_email' => 'info@yourcompany.co.ke',
+            'company_website' => 'www.yourcompany.co.ke',
+            'company_logo' => '',
+            'company_description' => 'Leading payroll management solutions in Kenya'
+        ];
     }
-    
-    // Default values
-    $defaults = [
-        'company_name' => 'Your Company Name',
-        'company_address' => 'Nairobi, Kenya',
-        'company_phone' => '+254 700 000 000',
-        'company_email' => 'info@yourcompany.co.ke',
-        'company_website' => 'www.yourcompany.co.ke',
-        'company_logo' => '',
-        'company_description' => 'Leading payroll management solutions in Kenya'
-    ];
-    
-    return array_merge($defaults, $info);
 }
 
 /**

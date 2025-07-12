@@ -1,5 +1,1 @@
-Warning: Undefined array key "action" in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/security_dashboard.php on line 278 
-
-  
-
-Deprecated: htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/security_dashboard.php on line 278 
+Fatal error: Uncaught PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'kenyan_payroll.cms_settings' doesn't exist in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/cms.php:54 Stack trace: #0 /Applications/MAMP/htdocs/kenyan-payroll-system/pages/cms.php(54): PDO->prepare('\n SELECT...') #1 /Applications/MAMP/htdocs/kenyan-payroll-system/pages/cms.php(44): getCMSSettings() #2 /Applications/MAMP/htdocs/kenyan-payroll-system/index.php(74): include('/Applications/M...') #3 {main} thrown in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/cms.php on line 54 
