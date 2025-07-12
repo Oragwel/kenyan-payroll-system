@@ -238,12 +238,23 @@ function getFinancialYear($date = null) {
  */
 function logActivity($action, $description, $userId = null) {
     global $db;
-    
+
+    // Skip logging if database is not available
+    if (!$db) {
+        return;
+    }
+
     if ($userId === null && isset($_SESSION['user_id'])) {
         $userId = $_SESSION['user_id'];
     }
-    
-    $stmt = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, created_at) VALUES (?, ?, ?, ?, NOW())");
-    $stmt->execute([$userId, $action, $description, $_SERVER['REMOTE_ADDR'] ?? '']);
+
+    try {
+        $stmt = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, created_at) VALUES (?, ?, ?, ?, NOW())");
+        $stmt->execute([$userId, $action, $description, $_SERVER['REMOTE_ADDR'] ?? '']);
+    } catch (PDOException $e) {
+        // Silently fail if activity_logs table doesn't exist
+        // This prevents login failures due to missing table
+        error_log("Activity logging failed: " . $e->getMessage());
+    }
 }
 ?>
