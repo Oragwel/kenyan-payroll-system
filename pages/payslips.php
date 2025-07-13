@@ -216,7 +216,7 @@ if ($action === 'view' && $payslipId) {
                     <p class="mb-0 opacity-75">
                         💰 View and download your payroll information
                         <?php if ($employee): ?>
-                            - <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>
+                            - <?php echo htmlspecialchars(($employee['first_name'] ?? '') . ' ' . ($employee['last_name'] ?? '')); ?>
                         <?php endif; ?>
                     </p>
                 </div>
@@ -245,14 +245,14 @@ if ($action === 'view' && $payslipId) {
                         </h4>
                         <div class="row">
                             <div class="col-md-6">
-                                <p><strong>Name:</strong> <?php echo htmlspecialchars($payslip['first_name'] . ' ' . $payslip['last_name']); ?></p>
-                                <p><strong>Employee Number:</strong> <?php echo htmlspecialchars($payslip['employee_number']); ?></p>
-                                <p><strong>ID Number:</strong> <?php echo htmlspecialchars($payslip['id_number']); ?></p>
+                                <p><strong>Name:</strong> <?php echo htmlspecialchars(($payslip['first_name'] ?? '') . ' ' . ($payslip['last_name'] ?? '')); ?></p>
+                                <p><strong>Employee Number:</strong> <?php echo htmlspecialchars($payslip['employee_number'] ?? 'N/A'); ?></p>
+                                <p><strong>ID Number:</strong> <?php echo htmlspecialchars($payslip['id_number'] ?? 'N/A'); ?></p>
                             </div>
                             <div class="col-md-6">
                                 <p><strong>Department:</strong> <?php echo htmlspecialchars($payslip['department_name'] ?? 'N/A'); ?></p>
                                 <p><strong>Position:</strong> <?php echo htmlspecialchars($payslip['position_title'] ?? 'N/A'); ?></p>
-                                <p><strong>Pay Period:</strong> <?php echo htmlspecialchars($payslip['period_name']); ?></p>
+                                <p><strong>Pay Period:</strong> <?php echo htmlspecialchars($payslip['period_name'] ?? 'N/A'); ?></p>
                             </div>
                         </div>
                     </div>
@@ -404,7 +404,7 @@ if ($action === 'view' && $payslipId) {
                             <h4>
                                 <i class="fas fa-list text-primary me-2"></i>
                                 <?php if ($employee): ?>
-                                    Payslips for <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>
+                                    Payslips for <?php echo htmlspecialchars(($employee['first_name'] ?? '') . ' ' . ($employee['last_name'] ?? '')); ?>
                                 <?php elseif (hasPermission('hr')): ?>
                                     All Employee Payslips
                                 <?php else: ?>
@@ -426,7 +426,7 @@ if ($action === 'view' && $payslipId) {
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <h6 class="mb-0 text-success">
                                                     <i class="fas fa-receipt me-2"></i>
-                                                    <?php echo htmlspecialchars($slip['period_name']); ?>
+                                                    <?php echo htmlspecialchars($slip['period_name'] ?? 'N/A'); ?>
                                                 </h6>
                                                 <span class="badge bg-success">
                                                     <?php echo formatCurrency($slip['net_pay']); ?>
@@ -435,8 +435,8 @@ if ($action === 'view' && $payslipId) {
                                             
                                             <?php if (hasPermission('hr') && !$employeeId): ?>
                                                 <p class="mb-2">
-                                                    <strong><?php echo htmlspecialchars($slip['employee_name']); ?></strong><br>
-                                                    <small class="text-muted"><?php echo htmlspecialchars($slip['employee_number']); ?></small>
+                                                    <strong><?php echo htmlspecialchars($slip['employee_name'] ?? 'N/A'); ?></strong><br>
+                                                    <small class="text-muted"><?php echo htmlspecialchars($slip['employee_number'] ?? 'N/A'); ?></small>
                                                 </p>
                                             <?php endif; ?>
                                             
