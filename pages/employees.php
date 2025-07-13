@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $payrollCount = $stmt->fetchColumn();
 
                 if ($payrollCount > 0) {
-                    // Don't delete, just deactivate
+                    // Don't delete, just deactivate (employee has payroll history)
                     $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated' WHERE id = ? AND company_id = ?");
                     $stmt->execute([$employeeId, $_SESSION['company_id']]);
-                    $message = 'Employee has been deactivated (has payroll records)';
+                    $message = 'Employee deactivated (has payroll records - cannot be deleted)';
                     $messageType = 'warning';
                 } else {
-                    // Safe to delete
+                    // Safe to delete completely
                     $stmt = $db->prepare("DELETE FROM employees WHERE id = ? AND company_id = ?");
                     $stmt->execute([$employeeId, $_SESSION['company_id']]);
                     $message = 'Employee deleted successfully';
@@ -185,15 +185,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get employees list
 if ($action === 'list') {
+    // Check for status filter
+    $statusFilter = $_GET['status'] ?? 'active';
+
+    if ($statusFilter === 'all') {
+        $whereClause = "WHERE e.company_id = ?";
+        $params = [$_SESSION['company_id']];
+    } else {
+        $whereClause = "WHERE e.company_id = ? AND e.employment_status = ?";
+        $params = [$_SESSION['company_id'], $statusFilter];
+    }
+
     $stmt = $db->prepare("
         SELECT e.*, d.name as department_name, p.title as position_title
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN job_positions p ON e.position_id = p.id
-        WHERE e.company_id = ?
+        $whereClause
         ORDER BY e.first_name, e.last_name
     ");
-    $stmt->execute([$_SESSION['company_id']]);
+    $stmt->execute($params);
     $employees = $stmt->fetchAll();
 }
 
@@ -464,19 +475,37 @@ function handleBulkImport($file) {
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-users"></i> Employee Management</h2>
                 <?php if ($action === 'list'): ?>
-                    <div class="btn-group">
-                        <a href="index.php?page=employees&action=add" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add Employee
-                        </a>
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
-                            <i class="fas fa-upload"></i> Bulk Import
-                        </button>
-                        <button type="button" class="btn btn-info" onclick="downloadTemplate()">
-                            <i class="fas fa-download"></i> CSV Template
-                        </button>
-                        <button type="button" class="btn btn-danger" onclick="toggleBulkDelete()" id="bulkDeleteBtn" style="display: none;">
-                            <i class="fas fa-trash"></i> Bulk Delete
-                        </button>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="btn-group">
+                            <a href="index.php?page=employees&action=add" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Employee
+                            </a>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkImportModal">
+                                <i class="fas fa-upload"></i> Bulk Import
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="downloadTemplate()">
+                                <i class="fas fa-download"></i> CSV Template
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="toggleBulkDelete()" id="bulkDeleteBtn" style="display: none;">
+                                <i class="fas fa-trash"></i> Bulk Delete
+                            </button>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="btn-group" role="group">
+                            <a href="index.php?page=employees&status=active"
+                               class="btn <?php echo ($statusFilter ?? 'active') === 'active' ? 'btn-success' : 'btn-outline-success'; ?>">
+                                <i class="fas fa-user-check"></i> Active
+                            </a>
+                            <a href="index.php?page=employees&status=terminated"
+                               class="btn <?php echo ($statusFilter ?? 'active') === 'terminated' ? 'btn-warning' : 'btn-outline-warning'; ?>">
+                                <i class="fas fa-user-times"></i> Terminated
+                            </a>
+                            <a href="index.php?page=employees&status=all"
+                               class="btn <?php echo ($statusFilter ?? 'active') === 'all' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">
+                                <i class="fas fa-users"></i> All
+                            </a>
+                        </div>
                     </div>
                 <?php elseif ($action === 'bulk_import'): ?>
                     <a href="index.php?page=employees" class="btn btn-secondary">
