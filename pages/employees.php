@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($payrollCount > 0) {
                     // Don't delete, just deactivate
-                    $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated', termination_date = CURDATE() WHERE id = ? AND company_id = ?");
+                    $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated' WHERE id = ? AND company_id = ?");
                     $stmt->execute([$employeeId, $_SESSION['company_id']]);
                     $message = 'Employee has been deactivated (has payroll records)';
                     $messageType = 'warning';
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     if ($payrollCount > 0) {
                         // Don't delete, just deactivate
-                        $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated', termination_date = CURDATE() WHERE id = ? AND company_id = ?");
+                        $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated' WHERE id = ? AND company_id = ?");
                         $stmt->execute([$employeeId, $_SESSION['company_id']]);
                         $deactivatedCount++;
                     } else {
