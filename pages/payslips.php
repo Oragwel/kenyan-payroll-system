@@ -222,9 +222,9 @@ if ($action === 'view' && $payslipId) {
                 </div>
                 <div class="col-md-4 text-end">
                     <?php if ($action === 'view'): ?>
-                        <a href="payslip_download.php?payslip_id=<?php echo $payslipId; ?>"
+                        <a href="simple_pdf_download.php?payslip_id=<?php echo $payslipId; ?>"
                            class="btn btn-light btn-lg">
-                            <i class="fas fa-download me-2"></i>Download PDF
+                            <i class="fas fa-download me-2"></i>Download Payslip
                         </a>
                     <?php endif; ?>
                 </div>
@@ -346,9 +346,9 @@ if ($action === 'view' && $payslipId) {
                         </h5>
                         
                         <div class="d-grid gap-2">
-                            <a href="payslip_download.php?payslip_id=<?php echo $payslipId; ?>"
+                            <a href="simple_pdf_download.php?payslip_id=<?php echo $payslipId; ?>"
                                class="btn btn-download">
-                                <i class="fas fa-download me-2"></i>Download PDF
+                                <i class="fas fa-download me-2"></i>Download Payslip
                             </a>
 
                             <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>"
@@ -474,8 +474,8 @@ if ($action === 'view' && $payslipId) {
                                                        target="_blank" class="btn btn-outline-info" title="View PDF">
                                                         <i class="fas fa-external-link-alt"></i>
                                                     </a>
-                                                    <a href="payslip_download.php?payslip_id=<?php echo $slip['id']; ?>"
-                                                       class="btn btn-outline-danger" title="Download PDF">
+                                                    <a href="simple_pdf_download.php?payslip_id=<?php echo $slip['id']; ?>"
+                                                       class="btn btn-outline-danger" title="Download Payslip">
                                                         <i class="fas fa-download"></i>
                                                     </a>
                                                 </div>

@@ -50,228 +50,127 @@ if (!$payslip) {
 // Generate filename
 $filename = 'Payslip_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $payslip['first_name'] . '_' . $payslip['last_name']) . '_' . date('Y-m-d', strtotime($payslip['pay_date'])) . '.pdf';
 
-// For debugging - let's first check if we have data
+// Check if we have data
 if (!$payslip) {
     die("No payslip data found for ID: " . $payslipId);
 }
 
-// Set headers for HTML download (not PDF for now, to debug)
-header('Content-Type: text/html; charset=utf-8');
-header('Content-Disposition: attachment; filename="' . str_replace('.pdf', '.html', $filename) . '"');
+// Create a simple text-based PDF-like content
+$content = generatePayslipText($payslip);
+
+// Set headers for PDF download
+header('Content-Type: application/pdf');
+header('Content-Disposition: attachment; filename="' . $filename . '"');
 header('Cache-Control: no-cache, must-revalidate');
 
-// Start output buffering
-ob_start();
+// Output the content
+echo $content;
+exit;
 
-// Generate HTML content for PDF
+function generatePayslipText($payslip) {
+    $text = "";
+
+    // PDF Header (basic PDF structure)
+    $text .= "%PDF-1.4\n";
+    $text .= "1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n";
+    $text .= "2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n";
+    $text .= "3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 595 842]\n/Contents 4 0 R\n/Resources <<\n/Font <<\n/F1 5 0 R\n>>\n>>\n>>\nendobj\n";
+
+    // Content stream
+    $content = "BT\n/F1 12 Tf\n";
+    $y = 800;
+
+    // Company header
+    $content .= "50 $y Td\n";
+    $content .= "(" . ($payslip['company_name'] ?? 'Company') . ") Tj\n";
+    $y -= 20;
+    $content .= "0 -20 Td\n";
+    $content .= "(PAYSLIP) Tj\n";
+    $y -= 30;
+
+    // Employee info
+    $content .= "0 -30 Td\n";
+    $content .= "(Employee: " . ($payslip['first_name'] ?? '') . " " . ($payslip['last_name'] ?? '') . ") Tj\n";
+    $content .= "0 -15 Td\n";
+    $content .= "(ID: " . ($payslip['emp_id'] ?? 'N/A') . ") Tj\n";
+    $content .= "0 -15 Td\n";
+    $content .= "(Department: " . ($payslip['department'] ?? 'N/A') . ") Tj\n";
+
+    // Pay period
+    $content .= "0 -20 Td\n";
+    $startDate = $payslip['pay_period_start'] ?? null;
+    $endDate = $payslip['pay_period_end'] ?? null;
+    if ($startDate && $endDate) {
+        $content .= "(Pay Period: " . date('d/m/Y', strtotime($startDate)) . " - " . date('d/m/Y', strtotime($endDate)) . ") Tj\n";
+    } else {
+        $content .= "(Pay Period: N/A) Tj\n";
+    }
+
+    // Earnings
+    $content .= "0 -25 Td\n";
+    $content .= "(EARNINGS) Tj\n";
+    $content .= "0 -15 Td\n";
+    $content .= "(Basic Salary: KES " . number_format($payslip['basic_salary'] ?? 0, 2) . ") Tj\n";
+
+    if (($payslip['total_allowances'] ?? 0) > 0) {
+        $content .= "0 -15 Td\n";
+        $content .= "(Allowances: KES " . number_format($payslip['total_allowances'], 2) . ") Tj\n";
+    }
+
+    $content .= "0 -20 Td\n";
+    $content .= "(GROSS PAY: KES " . number_format($payslip['gross_pay'] ?? 0, 2) . ") Tj\n";
+
+    // Deductions
+    $content .= "0 -25 Td\n";
+    $content .= "(DEDUCTIONS) Tj\n";
+
+    if (($payslip['paye_tax'] ?? 0) > 0) {
+        $content .= "0 -15 Td\n";
+        $content .= "(PAYE Tax: KES " . number_format($payslip['paye_tax'], 2) . ") Tj\n";
+    }
+
+    if (($payslip['nssf_deduction'] ?? 0) > 0) {
+        $content .= "0 -15 Td\n";
+        $content .= "(NSSF: KES " . number_format($payslip['nssf_deduction'], 2) . ") Tj\n";
+    }
+
+    if (($payslip['nhif_deduction'] ?? 0) > 0) {
+        $content .= "0 -15 Td\n";
+        $content .= "(NHIF: KES " . number_format($payslip['nhif_deduction'], 2) . ") Tj\n";
+    }
+
+    $content .= "0 -20 Td\n";
+    $content .= "(TOTAL DEDUCTIONS: KES " . number_format($payslip['total_deductions'] ?? 0, 2) . ") Tj\n";
+
+    // Net pay
+    $content .= "0 -25 Td\n";
+    $content .= "(NET PAY: KES " . number_format($payslip['net_pay'] ?? 0, 2) . ") Tj\n";
+
+    $content .= "ET\n";
+
+    // Add content object
+    $text .= "4 0 obj\n<<\n/Length " . strlen($content) . "\n>>\nstream\n";
+    $text .= $content;
+    $text .= "endstream\nendobj\n";
+
+    // Font object
+    $text .= "5 0 obj\n<<\n/Type /Font\n/Subtype /Type1\n/BaseFont /Helvetica\n>>\nendobj\n";
+
+    // Cross-reference table
+    $text .= "xref\n0 6\n";
+    $text .= "0000000000 65535 f \n";
+    $text .= "0000000009 00000 n \n";
+    $text .= "0000000074 00000 n \n";
+    $text .= "0000000120 00000 n \n";
+    $text .= "0000000179 00000 n \n";
+    $text .= sprintf("%010d 00000 n \n", strlen($content) + 200);
+
+    // Trailer
+    $text .= "trailer\n<<\n/Size 6\n/Root 1 0 R\n>>\n";
+    $text .= "startxref\n" . (strlen($content) + 300) . "\n%%EOF\n";
+
+    return $text;
+}
+
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        @page {
-            size: 80mm auto;
-            margin: 2mm;
-        }
-        body {
-            font-family: 'Courier New', monospace;
-            font-size: 8px;
-            line-height: 1.1;
-            margin: 0;
-            padding: 2mm;
-            color: #000;
-            background: white;
-        }
-        .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .header {
-            text-align: center;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2mm;
-            margin-bottom: 2mm;
-        }
-        .company-name {
-            font-size: 10px;
-            font-weight: bold;
-        }
-        .section {
-            margin: 2mm 0;
-        }
-        .section-title {
-            font-size: 9px;
-            font-weight: bold;
-            text-align: center;
-            margin: 1mm 0;
-            text-decoration: underline;
-        }
-        .row {
-            display: flex;
-            justify-content: space-between;
-            margin: 0.5mm 0;
-        }
-        .total-row {
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-            padding: 1mm 0;
-            font-weight: bold;
-        }
-        .net-pay {
-            text-align: center;
-            border: 1px solid #000;
-            padding: 2mm;
-            margin: 2mm 0;
-            font-weight: bold;
-            font-size: 10px;
-        }
-        .footer {
-            text-align: center;
-            font-size: 6px;
-            margin-top: 2mm;
-            border-top: 1px solid #000;
-            padding-top: 1mm;
-        }
-    </style>
-</head>
-<body>
-    <!-- Debug: Show all payslip data -->
-    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 10px;">
-        <strong>DEBUG INFO:</strong><br>
-        <?php
-        echo "Payslip ID: " . $payslipId . "<br>";
-        echo "Company ID: " . $_SESSION['company_id'] . "<br>";
-        echo "Data found: " . (empty($payslip) ? 'NO' : 'YES') . "<br>";
-        if (!empty($payslip)) {
-            echo "Employee: " . ($payslip['first_name'] ?? 'N/A') . " " . ($payslip['last_name'] ?? 'N/A') . "<br>";
-            echo "Employee Number: " . ($payslip['emp_id'] ?? 'N/A') . "<br>";
-            echo "Department: " . ($payslip['department'] ?? 'N/A') . "<br>";
-            echo "Basic Salary: " . ($payslip['basic_salary'] ?? 'N/A') . "<br>";
-        }
-        ?>
-    </div>
 
-    <div class="header">
-        <div class="company-name"><?php echo htmlspecialchars($payslip['company_name'] ?? 'Company Name'); ?></div>
-        <div><?php echo htmlspecialchars($payslip['company_address'] ?? 'Company Address'); ?></div>
-        <div>Tel: <?php echo htmlspecialchars($payslip['company_phone'] ?? 'Phone'); ?></div>
-    </div>
-    
-    <div class="section-title">PAYSLIP</div>
-    
-    <div class="section">
-        <div class="row">
-            <span>Employee:</span>
-            <span><?php echo htmlspecialchars(($payslip['first_name'] ?? '') . ' ' . ($payslip['last_name'] ?? '')); ?></span>
-        </div>
-        <div class="row">
-            <span>ID:</span>
-            <span><?php echo htmlspecialchars($payslip['emp_id'] ?? 'N/A'); ?></span>
-        </div>
-        <div class="row">
-            <span>Department:</span>
-            <span><?php echo htmlspecialchars($payslip['department'] ?? 'N/A'); ?></span>
-        </div>
-        <div class="row">
-            <span>Position:</span>
-            <span><?php echo htmlspecialchars($payslip['position'] ?? 'N/A'); ?></span>
-        </div>
-    </div>
-    
-    <div class="section">
-        <div class="row">
-            <span>Pay Period:</span>
-            <span><?php
-                $start = $payslip['pay_period_start'] ?? null;
-                $end = $payslip['pay_period_end'] ?? null;
-                if ($start && $end) {
-                    echo date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
-                } else {
-                    echo 'N/A';
-                }
-            ?></span>
-        </div>
-        <div class="row">
-            <span>Pay Date:</span>
-            <span><?php
-                $payDate = $payslip['pay_date'] ?? null;
-                echo $payDate ? date('d/m/Y', strtotime($payDate)) : 'N/A';
-            ?></span>
-        </div>
-    </div>
-    
-    <div class="section-title">EARNINGS</div>
-    <div class="section">
-        <div class="row">
-            <span>Basic Salary:</span>
-            <span>KES <?php echo number_format($payslip['basic_salary'] ?? 0, 2); ?></span>
-        </div>
-        <?php if (($payslip['total_allowances'] ?? 0) > 0): ?>
-        <div class="row">
-            <span>Allowances:</span>
-            <span>KES <?php echo number_format($payslip['total_allowances'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <?php if (($payslip['overtime_amount'] ?? 0) > 0): ?>
-        <div class="row">
-            <span>Overtime:</span>
-            <span>KES <?php echo number_format($payslip['overtime_amount'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <div class="row total-row">
-            <span>GROSS PAY:</span>
-            <span>KES <?php echo number_format($payslip['gross_pay'] ?? 0, 2); ?></span>
-        </div>
-    </div>
-    
-    <div class="section-title">DEDUCTIONS</div>
-    <div class="section">
-        <?php if ($payslip['paye_tax'] > 0): ?>
-        <div class="row">
-            <span>PAYE Tax:</span>
-            <span>KES <?php echo number_format($payslip['paye_tax'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <?php if ($payslip['nssf_deduction'] > 0): ?>
-        <div class="row">
-            <span>NSSF:</span>
-            <span>KES <?php echo number_format($payslip['nssf_deduction'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <?php if ($payslip['nhif_deduction'] > 0): ?>
-        <div class="row">
-            <span>NHIF:</span>
-            <span>KES <?php echo number_format($payslip['nhif_deduction'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <?php if ($payslip['housing_levy'] > 0): ?>
-        <div class="row">
-            <span>Housing Levy:</span>
-            <span>KES <?php echo number_format($payslip['housing_levy'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <div class="row total-row">
-            <span>TOTAL DEDUCTIONS:</span>
-            <span>KES <?php echo number_format($payslip['total_deductions'], 2); ?></span>
-        </div>
-    </div>
-    
-    <div class="net-pay">
-        <div>NET PAY</div>
-        <div style="font-size: 12px;">KES <?php echo number_format($payslip['net_pay'], 2); ?></div>
-    </div>
-    
-    <div class="footer">
-        Generated on <?php echo date('d/m/Y H:i'); ?><br>
-        This is a computer generated payslip
-    </div>
-</body>
-</html>
-<?php
-
-// Get the HTML content
-$html = ob_get_clean();
-
-// For now, output as HTML with PDF headers
-// In production, you would use wkhtmltopdf or similar
-echo $html;
-?>
