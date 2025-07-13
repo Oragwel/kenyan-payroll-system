@@ -240,6 +240,7 @@ try {
     // Add missing columns to existing table if they don't exist
     $columns_to_add = [
         'is_paid' => 'ALTER TABLE leave_types ADD COLUMN is_paid BOOLEAN DEFAULT TRUE',
+        'carry_forward' => 'ALTER TABLE leave_types ADD COLUMN carry_forward BOOLEAN DEFAULT FALSE',
         'max_carry_forward' => 'ALTER TABLE leave_types ADD COLUMN max_carry_forward INT DEFAULT 0',
         'description' => 'ALTER TABLE leave_types ADD COLUMN description TEXT',
         'is_active' => 'ALTER TABLE leave_types ADD COLUMN is_active BOOLEAN DEFAULT TRUE',
@@ -328,6 +329,7 @@ if ($action === 'list' || $action === 'add' || $action === 'edit') {
     foreach ($leaveTypes as &$type) {
         if (!isset($type['is_paid'])) $type['is_paid'] = 1;
         if (!isset($type['is_active'])) $type['is_active'] = 1;
+        if (!isset($type['carry_forward'])) $type['carry_forward'] = 0;
         if (!isset($type['max_carry_forward'])) $type['max_carry_forward'] = 0;
         if (!isset($type['description'])) $type['description'] = '';
     }
@@ -512,9 +514,9 @@ if ($action === 'edit' && $leaveTypeId) {
                                                 </span>
                                             </td>
                                             <td>
-                                                <?php if ($type['carry_forward']): ?>
+                                                <?php if (isset($type['carry_forward']) && $type['carry_forward']): ?>
                                                     <span class="badge badge-carry-forward">
-                                                        Max <?php echo $type['max_carry_forward']; ?> days
+                                                        Max <?php echo $type['max_carry_forward'] ?? 0; ?> days
                                                     </span>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary">No carry forward</span>
