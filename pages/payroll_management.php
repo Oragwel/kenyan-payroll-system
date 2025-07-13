@@ -11,10 +11,52 @@ if (!hasPermission('hr')) {
 $message = '';
 $messageType = '';
 
-// Handle bulk operations
+// Handle operations
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    
+
+    if ($action === 'delete_single_period') {
+        $periodId = $_POST['period_id'] ?? '';
+        if ($periodId) {
+            try {
+                $db->beginTransaction();
+
+                // Get period name for logging
+                $stmt = $db->prepare("SELECT period_name FROM payroll_periods WHERE id = ? AND company_id = ?");
+                $stmt->execute([$periodId, $_SESSION['company_id']]);
+                $period = $stmt->fetch();
+
+                if ($period) {
+                    // First delete payroll records
+                    $stmt = $db->prepare("DELETE FROM payroll_records WHERE payroll_period_id = ?");
+                    $stmt->execute([$periodId]);
+                    $deletedRecords = $stmt->rowCount();
+
+                    // Then delete the period
+                    $stmt = $db->prepare("DELETE FROM payroll_periods WHERE id = ? AND company_id = ?");
+                    $stmt->execute([$periodId, $_SESSION['company_id']]);
+                    $deletedPeriods = $stmt->rowCount();
+
+                    $db->commit();
+                    $message = "✅ Successfully deleted payroll period '{$period['period_name']}' and $deletedRecords payroll records.";
+                    $messageType = 'success';
+                } else {
+                    $db->rollBack();
+                    $message = 'Payroll period not found.';
+                    $messageType = 'danger';
+                }
+
+            } catch (Exception $e) {
+                $db->rollBack();
+                $message = 'Error deleting payroll period: ' . $e->getMessage();
+                $messageType = 'danger';
+            }
+        } else {
+            $message = 'Invalid payroll period ID.';
+            $messageType = 'danger';
+        }
+    }
+
     if ($action === 'delete_periods') {
         $selectedPeriods = $_POST['periods'] ?? [];
         if (!empty($selectedPeriods)) {
@@ -110,9 +152,59 @@ $stmt->execute([$_SESSION['company_id']]);
 $duplicateStats = $stmt->fetch();
 ?>
 
+<style>
+.payroll-mgmt-hero {
+    background: linear-gradient(135deg, #006b3f 0%, #004d2e 100%);
+    color: white;
+    padding: 2rem 0;
+    margin: -30px -30px 30px -30px;
+    border-radius: 0 0 20px 20px;
+}
+
+.mgmt-card {
+    background: white;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.mgmt-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+}
+</style>
+
 <div class="container-fluid">
+    <!-- Payroll Management Hero Section -->
+    <div class="payroll-mgmt-hero">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">
+                        <i class="fas fa-cogs me-3"></i>
+                        Payroll Management & Cleanup
+                    </h2>
+                    <p class="mb-0 opacity-75">
+                        🗂️ Manage payroll periods, delete records, and clean up duplicate entries
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="bg-white bg-opacity-15 rounded p-3">
+                        <h6 class="mb-1 text-white">Bulk Operations</h6>
+                        <small class="opacity-75">Delete periods individually or in bulk</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-cogs"></i> Payroll Management & Cleanup</h2>
+        <div>
+            <h4><i class="fas fa-list"></i> Payroll Periods Overview</h4>
+            <p class="text-muted mb-0">Manage and clean up your payroll data</p>
+        </div>
         <div>
             <a href="index.php?page=payroll" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Payroll
@@ -145,9 +237,9 @@ $duplicateStats = $stmt->fetch();
     <?php endif; ?>
 
     <!-- Bulk Operations -->
-    <div class="card mb-4">
+    <div class="mgmt-card">
         <div class="card-header">
-            <h5><i class="fas fa-tasks"></i> Bulk Operations</h5>
+            <h5><i class="fas fa-tasks"></i> Bulk Operations & Individual Deletion</h5>
         </div>
         <div class="card-body">
             <form method="POST" id="bulkForm">
@@ -227,14 +319,19 @@ $duplicateStats = $stmt->fetch();
                                         <td><?php echo htmlspecialchars($period['created_by_name'] ?? 'Unknown'); ?></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="index.php?page=payroll&action=view&id=<?php echo $period['id']; ?>" 
+                                                <a href="index.php?page=payroll&action=view&id=<?php echo $period['id']; ?>"
                                                    class="btn btn-outline-info" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="index.php?page=payslips&employee_id=&period_id=<?php echo $period['id']; ?>" 
+                                                <a href="index.php?page=payslips&employee_id=&period_id=<?php echo $period['id']; ?>"
                                                    class="btn btn-outline-primary" title="View Payslips">
                                                     <i class="fas fa-receipt"></i>
                                                 </a>
+                                                <button type="button" class="btn btn-outline-danger"
+                                                        onclick="deleteSinglePeriod(<?php echo $period['id']; ?>, '<?php echo htmlspecialchars($period['period_name'] ?? 'Unknown', ENT_QUOTES); ?>')"
+                                                        title="Delete Period">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -302,7 +399,31 @@ function confirmBulkDelete() {
         alert('Please select at least one payroll period to delete.');
         return false;
     }
-    
+
     return confirm(`Are you sure you want to delete ${selected.length} payroll period(s) and all associated payroll records? This action cannot be undone.`);
+}
+
+function deleteSinglePeriod(periodId, periodName) {
+    if (confirm(`Are you sure you want to delete the payroll period "${periodName}" and all associated payroll records?\n\nThis action cannot be undone.`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'delete_single_period';
+
+        const periodIdInput = document.createElement('input');
+        periodIdInput.type = 'hidden';
+        periodIdInput.name = 'period_id';
+        periodIdInput.value = periodId;
+
+        form.appendChild(actionInput);
+        form.appendChild(periodIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 </script>

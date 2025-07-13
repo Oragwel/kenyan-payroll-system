@@ -72,6 +72,10 @@
                     <i class="fas fa-calculator"></i> Advanced Payroll
                 </a>
 
+                <a href="index.php?page=payroll_management" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'payroll_management' ? 'active' : ''; ?>">
+                    <i class="fas fa-cogs"></i> Payroll Management
+                </a>
+
                 <a href="index.php?page=payslips" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'payslips' ? 'active' : ''; ?>">
                     <i class="fas fa-receipt"></i> Payslips
                 </a>
