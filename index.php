@@ -19,6 +19,12 @@ require_once 'secure_auth.php';
 $page = $_GET['page'] ?? 'dashboard';
 $action = $_GET['action'] ?? 'index';
 
+// Handle PDF generation BEFORE any headers are sent
+if ($page === 'payslips' && $action === 'pdf' && isset($_GET['payslip_id'])) {
+    header('Location: payslip_pdf.php?payslip_id=' . urlencode($_GET['payslip_id']));
+    exit;
+}
+
 // Initialize secure authentication
 global $secureAuth;
 

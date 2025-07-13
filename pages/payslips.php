@@ -7,11 +7,7 @@ $action = $_GET['action'] ?? 'list';
 $employeeId = $_GET['employee_id'] ?? $_SESSION['employee_id'] ?? null;
 $payslipId = $_GET['payslip_id'] ?? null;
 
-// Handle PDF generation - redirect to standalone PDF generator
-if ($action === 'pdf' && $payslipId) {
-    header('Location: payslip_pdf.php?payslip_id=' . urlencode($payslipId));
-    exit;
-}
+
 
 // Security check - employees can only view their own payslips
 if ($_SESSION['user_role'] === 'employee' && $employeeId != $_SESSION['employee_id']) {
