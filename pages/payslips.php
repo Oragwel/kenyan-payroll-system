@@ -7,6 +7,30 @@ $action = $_GET['action'] ?? 'list';
 $employeeId = $_GET['employee_id'] ?? $_SESSION['employee_id'] ?? null;
 $payslipId = $_GET['payslip_id'] ?? null;
 
+// Handle PDF generation FIRST - before any HTML output
+if ($action === 'pdf' && $payslipId) {
+    $stmt = $db->prepare("
+        SELECT pr.*, pp.period_name, pp.pay_date,
+               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+               e.employee_number, d.name as department_name, p.title as position_title
+        FROM payroll_records pr
+        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        JOIN employees e ON pr.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN job_positions p ON e.position_id = p.id
+        WHERE pr.id = ? AND e.company_id = ?
+    ");
+    $stmt->execute([$payslipId, $_SESSION['company_id']]);
+    $payslip = $stmt->fetch();
+
+    if ($payslip) {
+        generatePayslipPDF($payslip);
+    } else {
+        header('Location: index.php?page=payslips');
+        exit;
+    }
+}
+
 // Security check - employees can only view their own payslips
 if ($_SESSION['user_role'] === 'employee' && $employeeId != $_SESSION['employee_id']) {
     header('Location: index.php?page=payslips');
@@ -96,9 +120,15 @@ if ($action === 'view' && $payslipId) {
  * Generate PDF payslip
  */
 function generatePayslipPDF($payslip) {
-    // This would integrate with a PDF library like TCPDF or FPDF
-    // For now, we'll create a simple HTML version that can be printed
-    header('Content-Type: text/html');
+    // Clear any previous output and set proper headers
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    // Set headers for HTML display (can be easily printed to PDF)
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
     
     echo '<!DOCTYPE html>
     <html>
@@ -159,26 +189,6 @@ function generatePayslipPDF($payslip) {
     exit;
 }
 
-// Handle PDF generation
-if ($action === 'pdf' && $payslipId) {
-    $stmt = $db->prepare("
-        SELECT pr.*, pp.period_name, pp.pay_date,
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-               e.employee_number, d.name as department_name, p.title as position_title
-        FROM payroll_records pr
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-        JOIN employees e ON pr.employee_id = e.id
-        LEFT JOIN departments d ON e.department_id = d.id
-        LEFT JOIN job_positions p ON e.position_id = p.id
-        WHERE pr.id = ? AND e.company_id = ?
-    ");
-    $stmt->execute([$payslipId, $_SESSION['company_id']]);
-    $payslip = $stmt->fetch();
-    
-    if ($payslip) {
-        generatePayslipPDF($payslip);
-    }
-}
 ?>
 
 <!-- Payslips Styles -->
