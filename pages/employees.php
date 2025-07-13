@@ -83,14 +83,15 @@ $accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
                         $idNumber, $email, $phone, $hireDate, $basicSalary,
                         $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
                     ])) {
-                            $message = 'Employee added successfully';
-                            $messageType = 'success';
-                            logActivity('employee_add', "Added employee: $firstName $middleName $lastName");
-                        } else {
-                            $message = 'Failed to add employee';
-                            $messageType = 'danger';
-                        }
+                        $message = 'Employee added successfully';
+                        $messageType = 'success';
+                        logActivity('employee_add', "Added employee: $firstName $middleName $lastName");
                     } else {
+                        $message = 'Failed to add employee';
+                        $messageType = 'danger';
+                    }
+                }
+            } else {
                         $stmt = $db->prepare("
                             UPDATE employees SET
                                 first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
@@ -114,11 +115,10 @@ $accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
                             $messageType = 'danger';
                         }
                     }
-                } 
+                }
             }
         }
     }
-}
 
 // Get employees list
 if ($action === 'list') {
