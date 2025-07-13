@@ -655,54 +655,50 @@ function handleBulkImport($file) {
                                         <label for="bank_code" class="form-label">Bank <small class="text-muted">(optional)</small></label>
                                         <select class="form-select" id="bank_code" name="bank_code" onchange="updateBankName()">
                                             <option value="">Select Bank</option>
-                                            <option value="01" <?php echo ($employee['bank_code'] ?? '') === '01' ? 'selected' : ''; ?>>Kenya Commercial Bank (KCB)</option>
-                                            <option value="02" <?php echo ($employee['bank_code'] ?? '') === '02' ? 'selected' : ''; ?>>Standard Chartered Bank</option>
-                                            <option value="03" <?php echo ($employee['bank_code'] ?? '') === '03' ? 'selected' : ''; ?>>Barclays Bank of Kenya</option>
-                                            <option value="04" <?php echo ($employee['bank_code'] ?? '') === '04' ? 'selected' : ''; ?>>Bank of Baroda</option>
-                                            <option value="05" <?php echo ($employee['bank_code'] ?? '') === '05' ? 'selected' : ''; ?>>Bank of India</option>
-                                            <option value="06" <?php echo ($employee['bank_code'] ?? '') === '06' ? 'selected' : ''; ?>>Bank of Africa Kenya</option>
-                                            <option value="07" <?php echo ($employee['bank_code'] ?? '') === '07' ? 'selected' : ''; ?>>Prime Bank</option>
-                                            <option value="08" <?php echo ($employee['bank_code'] ?? '') === '08' ? 'selected' : ''; ?>>Imperial Bank</option>
-                                            <option value="09" <?php echo ($employee['bank_code'] ?? '') === '09' ? 'selected' : ''; ?>>Citibank</option>
-                                            <option value="10" <?php echo ($employee['bank_code'] ?? '') === '10' ? 'selected' : ''; ?>>Habib Bank AG Zurich</option>
-                                            <option value="11" <?php echo ($employee['bank_code'] ?? '') === '11' ? 'selected' : ''; ?>>Equity Bank</option>
-                                            <option value="12" <?php echo ($employee['bank_code'] ?? '') === '12' ? 'selected' : ''; ?>>Cooperative Bank of Kenya</option>
-                                            <option value="13" <?php echo ($employee['bank_code'] ?? '') === '13' ? 'selected' : ''; ?>>National Bank of Kenya</option>
-                                            <option value="14" <?php echo ($employee['bank_code'] ?? '') === '14' ? 'selected' : ''; ?>>Diamond Trust Bank</option>
-                                            <option value="15" <?php echo ($employee['bank_code'] ?? '') === '15' ? 'selected' : ''; ?>>Consolidated Bank of Kenya</option>
-                                            <option value="16" <?php echo ($employee['bank_code'] ?? '') === '16' ? 'selected' : ''; ?>>Credit Bank</option>
-                                            <option value="17" <?php echo ($employee['bank_code'] ?? '') === '17' ? 'selected' : ''; ?>>African Banking Corporation</option>
-                                            <option value="18" <?php echo ($employee['bank_code'] ?? '') === '18' ? 'selected' : ''; ?>>Trans National Bank</option>
-                                            <option value="19" <?php echo ($employee['bank_code'] ?? '') === '19' ? 'selected' : ''; ?>>CFC Stanbic Bank</option>
-                                            <option value="20" <?php echo ($employee['bank_code'] ?? '') === '20' ? 'selected' : ''; ?>>I&M Bank</option>
-                                            <option value="21" <?php echo ($employee['bank_code'] ?? '') === '21' ? 'selected' : ''; ?>>Fidelity Commercial Bank</option>
-                                            <option value="22" <?php echo ($employee['bank_code'] ?? '') === '22' ? 'selected' : ''; ?>>Dubai Bank Kenya</option>
-                                            <option value="23" <?php echo ($employee['bank_code'] ?? '') === '23' ? 'selected' : ''; ?>>Guaranty Trust Bank</option>
-                                            <option value="24" <?php echo ($employee['bank_code'] ?? '') === '24' ? 'selected' : ''; ?>>Family Bank</option>
-                                            <option value="25" <?php echo ($employee['bank_code'] ?? '') === '25' ? 'selected' : ''; ?>>Giro Commercial Bank</option>
-                                            <option value="26" <?php echo ($employee['bank_code'] ?? '') === '26' ? 'selected' : ''; ?>>Guardian Bank</option>
-                                            <option value="27" <?php echo ($employee['bank_code'] ?? '') === '27' ? 'selected' : ''; ?>>Gulf African Bank</option>
-                                            <option value="28" <?php echo ($employee['bank_code'] ?? '') === '28' ? 'selected' : ''; ?>>Victoria Commercial Bank</option>
-                                            <option value="29" <?php echo ($employee['bank_code'] ?? '') === '29' ? 'selected' : ''; ?>>Chase Bank Kenya</option>
-                                            <option value="30" <?php echo ($employee['bank_code'] ?? '') === '30' ? 'selected' : ''; ?>>Middle East Bank Kenya</option>
-                                            <option value="31" <?php echo ($employee['bank_code'] ?? '') === '31' ? 'selected' : ''; ?>>Paramount Universal Bank</option>
-                                            <option value="32" <?php echo ($employee['bank_code'] ?? '') === '32' ? 'selected' : ''; ?>>Jamii Bora Bank</option>
-                                            <option value="33" <?php echo ($employee['bank_code'] ?? '') === '33' ? 'selected' : ''; ?>>Development Bank of Kenya</option>
-                                            <option value="34" <?php echo ($employee['bank_code'] ?? '') === '34' ? 'selected' : ''; ?>>Housing Finance Company of Kenya</option>
-                                            <option value="35" <?php echo ($employee['bank_code'] ?? '') === '35' ? 'selected' : ''; ?>>NIC Bank</option>
-                                            <option value="36" <?php echo ($employee['bank_code'] ?? '') === '36' ? 'selected' : ''; ?>>Commercial Bank of Africa</option>
-                                            <option value="37" <?php echo ($employee['bank_code'] ?? '') === '37' ? 'selected' : ''; ?>>Sidian Bank</option>
-                                            <option value="38" <?php echo ($employee['bank_code'] ?? '') === '38' ? 'selected' : ''; ?>>UBA Kenya Bank</option>
-                                            <option value="39" <?php echo ($employee['bank_code'] ?? '') === '39' ? 'selected' : ''; ?>>Ecobank Kenya</option>
-                                            <option value="40" <?php echo ($employee['bank_code'] ?? '') === '40' ? 'selected' : ''; ?>>Spire Bank</option>
-                                            <option value="41" <?php echo ($employee['bank_code'] ?? '') === '41' ? 'selected' : ''; ?>>Mayfair Bank</option>
-                                            <option value="42" <?php echo ($employee['bank_code'] ?? '') === '42' ? 'selected' : ''; ?>>Access Bank Kenya</option>
-                                            <option value="43" <?php echo ($employee['bank_code'] ?? '') === '43' ? 'selected' : ''; ?>>Kingdom Bank</option>
-                                            <option value="44" <?php echo ($employee['bank_code'] ?? '') === '44' ? 'selected' : ''; ?>>DIB Bank Kenya</option>
-                                            <option value="45" <?php echo ($employee['bank_code'] ?? '') === '45' ? 'selected' : ''; ?>>NCBA Bank Kenya</option>
-                                            <option value="46" <?php echo ($employee['bank_code'] ?? '') === '46' ? 'selected' : ''; ?>>Absa Bank Kenya</option>
-                                            <option value="47" <?php echo ($employee['bank_code'] ?? '') === '47' ? 'selected' : ''; ?>>HFC Limited</option>
-                                            <option value="48" <?php echo ($employee['bank_code'] ?? '') === '48' ? 'selected' : ''; ?>>SBM Bank Kenya</option>
+                                            <option value="12053" <?php echo ($employee['bank_code'] ?? '') === '12053' ? 'selected' : ''; ?>>National Bank</option>
+                                            <option value="68058" <?php echo ($employee['bank_code'] ?? '') === '68058' ? 'selected' : ''; ?>>Equity Bank</option>
+                                            <option value="01169" <?php echo ($employee['bank_code'] ?? '') === '01169' ? 'selected' : ''; ?>>KCB Bank</option>
+                                            <option value="11081" <?php echo ($employee['bank_code'] ?? '') === '11081' ? 'selected' : ''; ?>>Cooperative Bank</option>
+                                            <option value="03017" <?php echo ($employee['bank_code'] ?? '') === '03017' ? 'selected' : ''; ?>>Absa Bank</option>
+                                            <option value="74004" <?php echo ($employee['bank_code'] ?? '') === '74004' ? 'selected' : ''; ?>>Premier Bank</option>
+                                            <option value="72006" <?php echo ($employee['bank_code'] ?? '') === '72006' ? 'selected' : ''; ?>>Gulf African Bank</option>
+                                            <option value="02001" <?php echo ($employee['bank_code'] ?? '') === '02001' ? 'selected' : ''; ?>>Standard Chartered Bank</option>
+                                            <option value="08001" <?php echo ($employee['bank_code'] ?? '') === '08001' ? 'selected' : ''; ?>>Imperial Bank</option>
+                                            <option value="09001" <?php echo ($employee['bank_code'] ?? '') === '09001' ? 'selected' : ''; ?>>Citibank</option>
+                                            <option value="10001" <?php echo ($employee['bank_code'] ?? '') === '10001' ? 'selected' : ''; ?>>Habib Bank AG Zurich</option>
+                                            <option value="14001" <?php echo ($employee['bank_code'] ?? '') === '14001' ? 'selected' : ''; ?>>Diamond Trust Bank</option>
+                                            <option value="15001" <?php echo ($employee['bank_code'] ?? '') === '15001' ? 'selected' : ''; ?>>Consolidated Bank of Kenya</option>
+                                            <option value="16001" <?php echo ($employee['bank_code'] ?? '') === '16001' ? 'selected' : ''; ?>>Credit Bank</option>
+                                            <option value="17001" <?php echo ($employee['bank_code'] ?? '') === '17001' ? 'selected' : ''; ?>>African Banking Corporation</option>
+                                            <option value="18001" <?php echo ($employee['bank_code'] ?? '') === '18001' ? 'selected' : ''; ?>>Trans National Bank</option>
+                                            <option value="19001" <?php echo ($employee['bank_code'] ?? '') === '19001' ? 'selected' : ''; ?>>CFC Stanbic Bank</option>
+                                            <option value="20001" <?php echo ($employee['bank_code'] ?? '') === '20001' ? 'selected' : ''; ?>>I&M Bank</option>
+                                            <option value="21001" <?php echo ($employee['bank_code'] ?? '') === '21001' ? 'selected' : ''; ?>>Fidelity Commercial Bank</option>
+                                            <option value="22001" <?php echo ($employee['bank_code'] ?? '') === '22001' ? 'selected' : ''; ?>>Dubai Bank Kenya</option>
+                                            <option value="23001" <?php echo ($employee['bank_code'] ?? '') === '23001' ? 'selected' : ''; ?>>Guaranty Trust Bank</option>
+                                            <option value="24001" <?php echo ($employee['bank_code'] ?? '') === '24001' ? 'selected' : ''; ?>>Family Bank</option>
+                                            <option value="25001" <?php echo ($employee['bank_code'] ?? '') === '25001' ? 'selected' : ''; ?>>Giro Commercial Bank</option>
+                                            <option value="26001" <?php echo ($employee['bank_code'] ?? '') === '26001' ? 'selected' : ''; ?>>Guardian Bank</option>
+                                            <option value="28001" <?php echo ($employee['bank_code'] ?? '') === '28001' ? 'selected' : ''; ?>>Victoria Commercial Bank</option>
+                                            <option value="29001" <?php echo ($employee['bank_code'] ?? '') === '29001' ? 'selected' : ''; ?>>Chase Bank Kenya</option>
+                                            <option value="30001" <?php echo ($employee['bank_code'] ?? '') === '30001' ? 'selected' : ''; ?>>Middle East Bank Kenya</option>
+                                            <option value="31001" <?php echo ($employee['bank_code'] ?? '') === '31001' ? 'selected' : ''; ?>>Paramount Universal Bank</option>
+                                            <option value="32001" <?php echo ($employee['bank_code'] ?? '') === '32001' ? 'selected' : ''; ?>>Jamii Bora Bank</option>
+                                            <option value="33001" <?php echo ($employee['bank_code'] ?? '') === '33001' ? 'selected' : ''; ?>>Development Bank of Kenya</option>
+                                            <option value="34001" <?php echo ($employee['bank_code'] ?? '') === '34001' ? 'selected' : ''; ?>>Housing Finance Company of Kenya</option>
+                                            <option value="35001" <?php echo ($employee['bank_code'] ?? '') === '35001' ? 'selected' : ''; ?>>NIC Bank</option>
+                                            <option value="36001" <?php echo ($employee['bank_code'] ?? '') === '36001' ? 'selected' : ''; ?>>Commercial Bank of Africa</option>
+                                            <option value="37001" <?php echo ($employee['bank_code'] ?? '') === '37001' ? 'selected' : ''; ?>>Sidian Bank</option>
+                                            <option value="38001" <?php echo ($employee['bank_code'] ?? '') === '38001' ? 'selected' : ''; ?>>UBA Kenya Bank</option>
+                                            <option value="39001" <?php echo ($employee['bank_code'] ?? '') === '39001' ? 'selected' : ''; ?>>Ecobank Kenya</option>
+                                            <option value="40001" <?php echo ($employee['bank_code'] ?? '') === '40001' ? 'selected' : ''; ?>>Spire Bank</option>
+                                            <option value="41001" <?php echo ($employee['bank_code'] ?? '') === '41001' ? 'selected' : ''; ?>>Mayfair Bank</option>
+                                            <option value="42001" <?php echo ($employee['bank_code'] ?? '') === '42001' ? 'selected' : ''; ?>>Access Bank Kenya</option>
+                                            <option value="43001" <?php echo ($employee['bank_code'] ?? '') === '43001' ? 'selected' : ''; ?>>Kingdom Bank</option>
+                                            <option value="44001" <?php echo ($employee['bank_code'] ?? '') === '44001' ? 'selected' : ''; ?>>DIB Bank Kenya</option>
+                                            <option value="45001" <?php echo ($employee['bank_code'] ?? '') === '45001' ? 'selected' : ''; ?>>NCBA Bank Kenya</option>
+                                            <option value="47001" <?php echo ($employee['bank_code'] ?? '') === '47001' ? 'selected' : ''; ?>>HFC Limited</option>
+                                            <option value="48001" <?php echo ($employee['bank_code'] ?? '') === '48001' ? 'selected' : ''; ?>>SBM Bank Kenya</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1024,56 +1020,55 @@ function handleBulkImport($file) {
 </div>
 
 <script>
-// Kenyan Bank Codes and Names mapping
+// Bank code to bank name mapping
 const kenyanBanks = {
-    '01': 'Kenya Commercial Bank (KCB)',
-    '02': 'Standard Chartered Bank',
-    '03': 'Barclays Bank of Kenya',
-    '04': 'Bank of Baroda',
-    '05': 'Bank of India',
-    '06': 'Bank of Africa Kenya',
-    '07': 'Prime Bank',
-    '08': 'Imperial Bank',
-    '09': 'Citibank',
-    '10': 'Habib Bank AG Zurich',
-    '11': 'Equity Bank',
-    '12': 'Cooperative Bank of Kenya',
-    '13': 'National Bank of Kenya',
-    '14': 'Diamond Trust Bank',
-    '15': 'Consolidated Bank of Kenya',
-    '16': 'Credit Bank',
-    '17': 'African Banking Corporation',
-    '18': 'Trans National Bank',
-    '19': 'CFC Stanbic Bank',
-    '20': 'I&M Bank',
-    '21': 'Fidelity Commercial Bank',
-    '22': 'Dubai Bank Kenya',
-    '23': 'Guaranty Trust Bank',
-    '24': 'Family Bank',
-    '25': 'Giro Commercial Bank',
-    '26': 'Guardian Bank',
-    '27': 'Gulf African Bank',
-    '28': 'Victoria Commercial Bank',
-    '29': 'Chase Bank Kenya',
-    '30': 'Middle East Bank Kenya',
-    '31': 'Paramount Universal Bank',
-    '32': 'Jamii Bora Bank',
-    '33': 'Development Bank of Kenya',
-    '34': 'Housing Finance Company of Kenya',
-    '35': 'NIC Bank',
-    '36': 'Commercial Bank of Africa',
-    '37': 'Sidian Bank',
-    '38': 'UBA Kenya Bank',
-    '39': 'Ecobank Kenya',
-    '40': 'Spire Bank',
-    '41': 'Mayfair Bank',
-    '42': 'Access Bank Kenya',
-    '43': 'Kingdom Bank',
-    '44': 'DIB Bank Kenya',
-    '45': 'NCBA Bank Kenya',
-    '46': 'Absa Bank Kenya',
-    '47': 'HFC Limited',
-    '48': 'SBM Bank Kenya'
+    // Primary banks with official codes
+    '12053': 'National Bank',
+    '68058': 'Equity Bank',
+    '01169': 'KCB Bank',
+    '11081': 'Cooperative Bank',
+    '03017': 'Absa Bank',
+    '74004': 'Premier Bank',
+    '72006': 'Gulf African Bank',
+
+    // Additional banks with assigned codes
+    '02001': 'Standard Chartered Bank',
+    '08001': 'Imperial Bank',
+    '09001': 'Citibank',
+    '10001': 'Habib Bank AG Zurich',
+    '14001': 'Diamond Trust Bank',
+    '15001': 'Consolidated Bank of Kenya',
+    '16001': 'Credit Bank',
+    '17001': 'African Banking Corporation',
+    '18001': 'Trans National Bank',
+    '19001': 'CFC Stanbic Bank',
+    '20001': 'I&M Bank',
+    '21001': 'Fidelity Commercial Bank',
+    '22001': 'Dubai Bank Kenya',
+    '23001': 'Guaranty Trust Bank',
+    '24001': 'Family Bank',
+    '25001': 'Giro Commercial Bank',
+    '26001': 'Guardian Bank',
+    '28001': 'Victoria Commercial Bank',
+    '29001': 'Chase Bank Kenya',
+    '30001': 'Middle East Bank Kenya',
+    '31001': 'Paramount Universal Bank',
+    '32001': 'Jamii Bora Bank',
+    '33001': 'Development Bank of Kenya',
+    '34001': 'Housing Finance Company of Kenya',
+    '35001': 'NIC Bank',
+    '36001': 'Commercial Bank of Africa',
+    '37001': 'Sidian Bank',
+    '38001': 'UBA Kenya Bank',
+    '39001': 'Ecobank Kenya',
+    '40001': 'Spire Bank',
+    '41001': 'Mayfair Bank',
+    '42001': 'Access Bank Kenya',
+    '43001': 'Kingdom Bank',
+    '44001': 'DIB Bank Kenya',
+    '45001': 'NCBA Bank Kenya',
+    '47001': 'HFC Limited',
+    '48001': 'SBM Bank Kenya'
 };
 
 // Update bank name when bank code is selected
