@@ -27,11 +27,14 @@ if (!$payslipId) {
 
 // Get payslip data
 $stmt = $db->prepare("
-    SELECT pr.*, e.first_name, e.last_name, e.employee_id as emp_id, e.department, e.position,
+    SELECT pr.*, e.first_name, e.last_name, e.employee_number as emp_id,
+           d.name as department, p.title as position,
            pp.pay_period_start, pp.pay_period_end, pp.pay_date,
            c.name as company_name, c.address as company_address, c.phone as company_phone
     FROM payroll_records pr
     JOIN employees e ON pr.employee_id = e.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    LEFT JOIN job_positions p ON e.position_id = p.id
     JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
     JOIN companies c ON e.company_id = c.id
     WHERE pr.id = ? AND e.company_id = ?
@@ -208,16 +211,16 @@ ob_start();
             <span>Basic Salary:</span>
             <span>KES <?php echo number_format($payslip['basic_salary'], 2); ?></span>
         </div>
-        <?php if ($payslip['allowances'] > 0): ?>
+        <?php if ($payslip['total_allowances'] > 0): ?>
         <div class="amount-row">
             <span>Allowances:</span>
-            <span>KES <?php echo number_format($payslip['allowances'], 2); ?></span>
+            <span>KES <?php echo number_format($payslip['total_allowances'], 2); ?></span>
         </div>
         <?php endif; ?>
-        <?php if ($payslip['overtime_pay'] > 0): ?>
+        <?php if ($payslip['overtime_amount'] > 0): ?>
         <div class="amount-row">
             <span>Overtime:</span>
-            <span>KES <?php echo number_format($payslip['overtime_pay'], 2); ?></span>
+            <span>KES <?php echo number_format($payslip['overtime_amount'], 2); ?></span>
         </div>
         <?php endif; ?>
         <div class="total-row">
@@ -249,12 +252,6 @@ ob_start();
         <div class="amount-row">
             <span>Housing Levy:</span>
             <span>KES <?php echo number_format($payslip['housing_levy'], 2); ?></span>
-        </div>
-        <?php endif; ?>
-        <?php if ($payslip['other_deductions'] > 0): ?>
-        <div class="amount-row">
-            <span>Other Deductions:</span>
-            <span>KES <?php echo number_format($payslip['other_deductions'], 2); ?></span>
         </div>
         <?php endif; ?>
         <div class="total-row">

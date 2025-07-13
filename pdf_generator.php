@@ -27,11 +27,14 @@ if (!$payslipId) {
 
 // Get payslip data
 $stmt = $db->prepare("
-    SELECT pr.*, e.first_name, e.last_name, e.employee_id as emp_id, e.department, e.position,
+    SELECT pr.*, e.first_name, e.last_name, e.employee_number as emp_id,
+           d.name as department, p.title as position,
            pp.pay_period_start, pp.pay_period_end, pp.pay_date,
            c.name as company_name, c.address as company_address, c.phone as company_phone
     FROM payroll_records pr
     JOIN employees e ON pr.employee_id = e.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    LEFT JOIN job_positions p ON e.position_id = p.id
     JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
     JOIN companies c ON e.company_id = c.id
     WHERE pr.id = ? AND e.company_id = ?
@@ -79,11 +82,11 @@ echo "=====================================\n";
 echo "EARNINGS\n";
 echo "=====================================\n";
 echo sprintf("%-20s %15s\n", "Basic Salary:", "KES " . number_format($payslip['basic_salary'], 2));
-if ($payslip['allowances'] > 0) {
-    echo sprintf("%-20s %15s\n", "Allowances:", "KES " . number_format($payslip['allowances'], 2));
+if ($payslip['total_allowances'] > 0) {
+    echo sprintf("%-20s %15s\n", "Allowances:", "KES " . number_format($payslip['total_allowances'], 2));
 }
-if ($payslip['overtime_pay'] > 0) {
-    echo sprintf("%-20s %15s\n", "Overtime Pay:", "KES " . number_format($payslip['overtime_pay'], 2));
+if ($payslip['overtime_amount'] > 0) {
+    echo sprintf("%-20s %15s\n", "Overtime Pay:", "KES " . number_format($payslip['overtime_amount'], 2));
 }
 echo "-------------------------------------\n";
 echo sprintf("%-20s %15s\n", "GROSS PAY:", "KES " . number_format($payslip['gross_pay'], 2));
@@ -103,9 +106,6 @@ if ($payslip['nhif_deduction'] > 0) {
 }
 if ($payslip['housing_levy'] > 0) {
     echo sprintf("%-20s %15s\n", "Housing Levy:", "KES " . number_format($payslip['housing_levy'], 2));
-}
-if ($payslip['other_deductions'] > 0) {
-    echo sprintf("%-20s %15s\n", "Other Deductions:", "KES " . number_format($payslip['other_deductions'], 2));
 }
 echo "-------------------------------------\n";
 echo sprintf("%-20s %15s\n", "TOTAL DEDUCTIONS:", "KES " . number_format($payslip['total_deductions'], 2));
