@@ -7,28 +7,10 @@ $action = $_GET['action'] ?? 'list';
 $employeeId = $_GET['employee_id'] ?? $_SESSION['employee_id'] ?? null;
 $payslipId = $_GET['payslip_id'] ?? null;
 
-// Handle PDF generation FIRST - before any HTML output
+// Handle PDF generation - redirect to standalone PDF generator
 if ($action === 'pdf' && $payslipId) {
-    $stmt = $db->prepare("
-        SELECT pr.*, pp.period_name, pp.pay_date,
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-               e.employee_number, d.name as department_name, p.title as position_title
-        FROM payroll_records pr
-        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-        JOIN employees e ON pr.employee_id = e.id
-        LEFT JOIN departments d ON e.department_id = d.id
-        LEFT JOIN job_positions p ON e.position_id = p.id
-        WHERE pr.id = ? AND e.company_id = ?
-    ");
-    $stmt->execute([$payslipId, $_SESSION['company_id']]);
-    $payslip = $stmt->fetch();
-
-    if ($payslip) {
-        generatePayslipPDF($payslip);
-    } else {
-        header('Location: index.php?page=payslips');
-        exit;
-    }
+    header('Location: payslip_pdf.php?payslip_id=' . urlencode($payslipId));
+    exit;
 }
 
 // Security check - employees can only view their own payslips
@@ -116,78 +98,7 @@ if ($action === 'view' && $payslipId) {
     $payslips = $stmt->fetchAll();
 }
 
-/**
- * Generate PDF payslip
- */
-function generatePayslipPDF($payslip) {
-    // Clear any previous output and set proper headers
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
 
-    // Set headers for HTML display (can be easily printed to PDF)
-    header('Content-Type: text/html; charset=utf-8');
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-    
-    echo '<!DOCTYPE html>
-    <html>
-    <head>
-        <title>Payslip - ' . htmlspecialchars($payslip['employee_name']) . '</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #006b3f; padding-bottom: 10px; }
-            .payslip-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            .payslip-table th, .payslip-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .payslip-table th { background-color: #006b3f; color: white; }
-            .total-row { background-color: #f0f8f0; font-weight: bold; }
-            @media print { .no-print { display: none; } }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h2>PAYSLIP</h2>
-            <p>Period: ' . htmlspecialchars($payslip['period_name']) . '</p>
-            <p>Pay Date: ' . formatDate($payslip['pay_date']) . '</p>
-        </div>
-        
-        <table class="payslip-table">
-            <tr><th colspan="2">Employee Information</th></tr>
-            <tr><td>Name</td><td>' . htmlspecialchars($payslip['employee_name']) . '</td></tr>
-            <tr><td>Employee Number</td><td>' . htmlspecialchars($payslip['employee_number']) . '</td></tr>
-            <tr><td>Department</td><td>' . htmlspecialchars($payslip['department_name'] ?? 'N/A') . '</td></tr>
-            <tr><td>Position</td><td>' . htmlspecialchars($payslip['position_title'] ?? 'N/A') . '</td></tr>
-        </table>
-        
-        <table class="payslip-table">
-            <tr><th colspan="2">Earnings</th></tr>
-            <tr><td>Basic Salary</td><td>' . formatCurrency($payslip['basic_salary']) . '</td></tr>
-            <tr><td>Total Allowances</td><td>' . formatCurrency($payslip['total_allowances']) . '</td></tr>
-            <tr><td>Overtime</td><td>' . formatCurrency($payslip['overtime_amount']) . '</td></tr>
-            <tr class="total-row"><td>Gross Pay</td><td>' . formatCurrency($payslip['gross_pay']) . '</td></tr>
-        </table>
-        
-        <table class="payslip-table">
-            <tr><th colspan="2">Deductions</th></tr>
-            <tr><td>PAYE Tax</td><td>' . formatCurrency($payslip['paye_tax']) . '</td></tr>
-            <tr><td>NSSF</td><td>' . formatCurrency($payslip['nssf_deduction']) . '</td></tr>
-            <tr><td>SHIF/NHIF</td><td>' . formatCurrency($payslip['nhif_deduction']) . '</td></tr>
-            <tr><td>Housing Levy</td><td>' . formatCurrency($payslip['housing_levy']) . '</td></tr>
-            <tr class="total-row"><td>Total Deductions</td><td>' . formatCurrency($payslip['total_deductions']) . '</td></tr>
-        </table>
-        
-        <table class="payslip-table">
-            <tr class="total-row"><th>NET PAY</th><th>' . formatCurrency($payslip['net_pay']) . '</th></tr>
-        </table>
-        
-        <div class="no-print" style="margin-top: 20px; text-align: center;">
-            <button onclick="window.print()">Print Payslip</button>
-            <button onclick="window.close()">Close</button>
-        </div>
-    </body>
-    </html>';
-    exit;
-}
 
 ?>
 
