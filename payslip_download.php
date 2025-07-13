@@ -50,9 +50,14 @@ if (!$payslip) {
 // Generate filename
 $filename = 'Payslip_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $payslip['first_name'] . '_' . $payslip['last_name']) . '_' . date('Y-m-d', strtotime($payslip['pay_date'])) . '.pdf';
 
-// Set headers for PDF download
-header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
+// For debugging - let's first check if we have data
+if (!$payslip) {
+    die("No payslip data found for ID: " . $payslipId);
+}
+
+// Set headers for HTML download (not PDF for now, to debug)
+header('Content-Type: text/html; charset=utf-8');
+header('Content-Disposition: attachment; filename="' . str_replace('.pdf', '.html', $filename) . '"');
 header('Cache-Control: no-cache, must-revalidate');
 
 // Start output buffering
@@ -129,10 +134,26 @@ ob_start();
     </style>
 </head>
 <body>
+    <!-- Debug: Show all payslip data -->
+    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 10px;">
+        <strong>DEBUG INFO:</strong><br>
+        <?php
+        echo "Payslip ID: " . $payslipId . "<br>";
+        echo "Company ID: " . $_SESSION['company_id'] . "<br>";
+        echo "Data found: " . (empty($payslip) ? 'NO' : 'YES') . "<br>";
+        if (!empty($payslip)) {
+            echo "Employee: " . ($payslip['first_name'] ?? 'N/A') . " " . ($payslip['last_name'] ?? 'N/A') . "<br>";
+            echo "Employee Number: " . ($payslip['emp_id'] ?? 'N/A') . "<br>";
+            echo "Department: " . ($payslip['department'] ?? 'N/A') . "<br>";
+            echo "Basic Salary: " . ($payslip['basic_salary'] ?? 'N/A') . "<br>";
+        }
+        ?>
+    </div>
+
     <div class="header">
-        <div class="company-name"><?php echo htmlspecialchars($payslip['company_name']); ?></div>
-        <div><?php echo htmlspecialchars($payslip['company_address']); ?></div>
-        <div>Tel: <?php echo htmlspecialchars($payslip['company_phone']); ?></div>
+        <div class="company-name"><?php echo htmlspecialchars($payslip['company_name'] ?? 'Company Name'); ?></div>
+        <div><?php echo htmlspecialchars($payslip['company_address'] ?? 'Company Address'); ?></div>
+        <div>Tel: <?php echo htmlspecialchars($payslip['company_phone'] ?? 'Phone'); ?></div>
     </div>
     
     <div class="section-title">PAYSLIP</div>
@@ -140,30 +161,41 @@ ob_start();
     <div class="section">
         <div class="row">
             <span>Employee:</span>
-            <span><?php echo htmlspecialchars($payslip['first_name'] . ' ' . $payslip['last_name']); ?></span>
+            <span><?php echo htmlspecialchars(($payslip['first_name'] ?? '') . ' ' . ($payslip['last_name'] ?? '')); ?></span>
         </div>
         <div class="row">
             <span>ID:</span>
-            <span><?php echo htmlspecialchars($payslip['emp_id']); ?></span>
+            <span><?php echo htmlspecialchars($payslip['emp_id'] ?? 'N/A'); ?></span>
         </div>
         <div class="row">
             <span>Department:</span>
-            <span><?php echo htmlspecialchars($payslip['department']); ?></span>
+            <span><?php echo htmlspecialchars($payslip['department'] ?? 'N/A'); ?></span>
         </div>
         <div class="row">
             <span>Position:</span>
-            <span><?php echo htmlspecialchars($payslip['position']); ?></span>
+            <span><?php echo htmlspecialchars($payslip['position'] ?? 'N/A'); ?></span>
         </div>
     </div>
     
     <div class="section">
         <div class="row">
             <span>Pay Period:</span>
-            <span><?php echo date('d/m/Y', strtotime($payslip['pay_period_start'])) . ' - ' . date('d/m/Y', strtotime($payslip['pay_period_end'])); ?></span>
+            <span><?php
+                $start = $payslip['pay_period_start'] ?? null;
+                $end = $payslip['pay_period_end'] ?? null;
+                if ($start && $end) {
+                    echo date('d/m/Y', strtotime($start)) . ' - ' . date('d/m/Y', strtotime($end));
+                } else {
+                    echo 'N/A';
+                }
+            ?></span>
         </div>
         <div class="row">
             <span>Pay Date:</span>
-            <span><?php echo date('d/m/Y', strtotime($payslip['pay_date'])); ?></span>
+            <span><?php
+                $payDate = $payslip['pay_date'] ?? null;
+                echo $payDate ? date('d/m/Y', strtotime($payDate)) : 'N/A';
+            ?></span>
         </div>
     </div>
     
@@ -171,15 +203,15 @@ ob_start();
     <div class="section">
         <div class="row">
             <span>Basic Salary:</span>
-            <span>KES <?php echo number_format($payslip['basic_salary'], 2); ?></span>
+            <span>KES <?php echo number_format($payslip['basic_salary'] ?? 0, 2); ?></span>
         </div>
-        <?php if ($payslip['total_allowances'] > 0): ?>
+        <?php if (($payslip['total_allowances'] ?? 0) > 0): ?>
         <div class="row">
             <span>Allowances:</span>
             <span>KES <?php echo number_format($payslip['total_allowances'], 2); ?></span>
         </div>
         <?php endif; ?>
-        <?php if ($payslip['overtime_amount'] > 0): ?>
+        <?php if (($payslip['overtime_amount'] ?? 0) > 0): ?>
         <div class="row">
             <span>Overtime:</span>
             <span>KES <?php echo number_format($payslip['overtime_amount'], 2); ?></span>
@@ -187,7 +219,7 @@ ob_start();
         <?php endif; ?>
         <div class="row total-row">
             <span>GROSS PAY:</span>
-            <span>KES <?php echo number_format($payslip['gross_pay'], 2); ?></span>
+            <span>KES <?php echo number_format($payslip['gross_pay'] ?? 0, 2); ?></span>
         </div>
     </div>
     
