@@ -20,6 +20,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $payslipId = $_GET['payslip_id'] ?? null;
+$download = $_GET['download'] ?? false;
 
 if (!$payslipId) {
     header('Location: index.php?page=payslips');
@@ -60,9 +61,19 @@ if (ob_get_level()) {
     ob_end_clean();
 }
 
-header('Content-Type: text/html; charset=utf-8');
-header('Cache-Control: no-cache, must-revalidate');
-header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+// If download is requested, we'll force download as HTML with PDF-like styling
+if ($download) {
+    $filename = 'Payslip_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $payslip['employee_name']) . '_' . date('Y-m-d', strtotime($payslip['pay_date'])) . '.html';
+
+    header('Content-Type: text/html; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+} else {
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -419,15 +430,38 @@ header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
             max-width: 200px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        /* Download-specific styles */
+        <?php if ($download): ?>
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .payslip-container {
+            max-width: none !important;
+            margin: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+        <?php endif; ?>
     </style>
 </head>
 <body>
+    <?php if (!$download): ?>
     <button class="print-button no-print" onclick="window.print()">🖨️ Print Thermal (80mm)</button>
     <div class="print-info no-print">
         <strong>Print Format:</strong><br>
         📺 Screen: A4 size<br>
         🖨️ Print: 80mm thermal roll
     </div>
+    <?php endif; ?>
     
     <div class="payslip-container">
         <div class="header">

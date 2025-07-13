@@ -222,8 +222,8 @@ if ($action === 'view' && $payslipId) {
                 </div>
                 <div class="col-md-4 text-end">
                     <?php if ($action === 'view'): ?>
-                        <a href="index.php?page=payslips&action=pdf&payslip_id=<?php echo $payslipId; ?>" 
-                           target="_blank" class="btn btn-light btn-lg">
+                        <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>&download=1"
+                           class="btn btn-light btn-lg">
                             <i class="fas fa-download me-2"></i>Download PDF
                         </a>
                     <?php endif; ?>
@@ -346,11 +346,16 @@ if ($action === 'view' && $payslipId) {
                         </h5>
                         
                         <div class="d-grid gap-2">
-                            <a href="index.php?page=payslips&action=pdf&payslip_id=<?php echo $payslipId; ?>" 
-                               target="_blank" class="btn btn-download">
-                                <i class="fas fa-file-pdf me-2"></i>Download PDF
+                            <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>&download=1"
+                               class="btn btn-download">
+                                <i class="fas fa-download me-2"></i>Download PDF
                             </a>
-                            
+
+                            <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>"
+                               target="_blank" class="btn btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-2"></i>View PDF
+                            </a>
+
                             <a href="javascript:window.print()" class="btn btn-outline-secondary">
                                 <i class="fas fa-print me-2"></i>Print Payslip
                             </a>
@@ -461,12 +466,16 @@ if ($action === 'view' && $payslipId) {
                                                 </small>
                                                 
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="index.php?page=payslips&action=view&payslip_id=<?php echo $slip['id']; ?>" 
+                                                    <a href="index.php?page=payslips&action=view&payslip_id=<?php echo $slip['id']; ?>"
                                                        class="btn btn-outline-primary" title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="index.php?page=payslips&action=pdf&payslip_id=<?php echo $slip['id']; ?>" 
-                                                       target="_blank" class="btn btn-outline-danger" title="Download PDF">
+                                                    <a href="payslip_pdf.php?payslip_id=<?php echo $slip['id']; ?>"
+                                                       target="_blank" class="btn btn-outline-info" title="View PDF">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </a>
+                                                    <a href="payslip_pdf.php?payslip_id=<?php echo $slip['id']; ?>&download=1"
+                                                       class="btn btn-outline-danger" title="Download PDF">
                                                         <i class="fas fa-download"></i>
                                                     </a>
                                                 </div>
