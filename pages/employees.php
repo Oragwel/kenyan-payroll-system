@@ -663,6 +663,10 @@ function handleBulkImport($file) {
                                             <option value="74004" <?php echo ($employee['bank_code'] ?? '') === '74004' ? 'selected' : ''; ?>>Premier Bank</option>
                                             <option value="72006" <?php echo ($employee['bank_code'] ?? '') === '72006' ? 'selected' : ''; ?>>Gulf African Bank</option>
                                             <option value="02053" <?php echo ($employee['bank_code'] ?? '') === '02053' ? 'selected' : ''; ?>>Standard Chartered Bank</option>
+                                            <option value="04012" <?php echo ($employee['bank_code'] ?? '') === '04012' ? 'selected' : ''; ?>>Bank of Baroda</option>
+                                            <option value="05013" <?php echo ($employee['bank_code'] ?? '') === '05013' ? 'selected' : ''; ?>>Bank of India</option>
+                                            <option value="06014" <?php echo ($employee['bank_code'] ?? '') === '06014' ? 'selected' : ''; ?>>Bank of Africa Kenya</option>
+                                            <option value="07015" <?php echo ($employee['bank_code'] ?? '') === '07015' ? 'selected' : ''; ?>>Prime Bank</option>
                                             <option value="08058" <?php echo ($employee['bank_code'] ?? '') === '08058' ? 'selected' : ''; ?>>Imperial Bank</option>
                                             <option value="09169" <?php echo ($employee['bank_code'] ?? '') === '09169' ? 'selected' : ''; ?>>Citibank</option>
                                             <option value="10081" <?php echo ($employee['bank_code'] ?? '') === '10081' ? 'selected' : ''; ?>>Habib Bank AG Zurich</option>
@@ -699,6 +703,10 @@ function handleBulkImport($file) {
                                             <option value="45006" <?php echo ($employee['bank_code'] ?? '') === '45006' ? 'selected' : ''; ?>>NCBA Bank Kenya</option>
                                             <option value="47053" <?php echo ($employee['bank_code'] ?? '') === '47053' ? 'selected' : ''; ?>>HFC Limited</option>
                                             <option value="48058" <?php echo ($employee['bank_code'] ?? '') === '48058' ? 'selected' : ''; ?>>SBM Bank Kenya</option>
+                                            <option value="16019" <?php echo ($employee['bank_code'] ?? '') === '16019' ? 'selected' : ''; ?>>Stanbic Bank</option>
+                                            <option value="49020" <?php echo ($employee['bank_code'] ?? '') === '49020' ? 'selected' : ''; ?>>First Community Bank</option>
+                                            <option value="50021" <?php echo ($employee['bank_code'] ?? '') === '50021' ? 'selected' : ''; ?>>Oriental Commercial Bank</option>
+                                            <option value="51022" <?php echo ($employee['bank_code'] ?? '') === '51022' ? 'selected' : ''; ?>>Equatorial Commercial Bank</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1033,6 +1041,10 @@ const kenyanBanks = {
 
     // Additional banks with numeric codes
     '02053': 'Standard Chartered Bank',
+    '04012': 'Bank of Baroda',
+    '05013': 'Bank of India',
+    '06014': 'Bank of Africa Kenya',
+    '07015': 'Prime Bank',
     '08058': 'Imperial Bank',
     '09169': 'Citibank',
     '10081': 'Habib Bank AG Zurich',
@@ -1068,7 +1080,11 @@ const kenyanBanks = {
     '44004': 'DIB Bank Kenya',
     '45006': 'NCBA Bank Kenya',
     '47053': 'HFC Limited',
-    '48058': 'SBM Bank Kenya'
+    '48058': 'SBM Bank Kenya',
+    '16019': 'Stanbic Bank',
+    '49020': 'First Community Bank',
+    '50021': 'Oriental Commercial Bank',
+    '51022': 'Equatorial Commercial Bank'
 };
 
 // Update bank name when bank code is selected
