@@ -6,9 +6,9 @@
 class Database {
     private $host = 'localhost';
     private $db_name = 'kenyan_payroll';
-    private $username = 'root';
-    private $password = 'root';
-    private $port = '8889';
+    private $username = 'payroll_user';
+    private $password = 'Mania124#';
+    private $port = '3306';
     private $conn;
 
     public function getConnection() {

@@ -145,7 +145,9 @@ function enforceInstallationCheck() {
         'installation_status.php',
         'clean_install.php',
         'migrate_activity_logs.php',
-        'migrate_banking_fields.php'
+        'migrate_banking_fields.php',
+        'clear_session.php',
+        'break_redirect_loop.php'
     ];
 
     // Don't redirect if we're already on an installation-related page
@@ -153,7 +155,16 @@ function enforceInstallationCheck() {
         return;
     }
 
-    // Check if we've already redirected recently (prevent loops)
+    // First, check installation status
+    $installCheck = checkSystemInstallation();
+
+    if ($installCheck['installed']) {
+        // Installation is complete, clear any redirect counter and continue
+        unset($_SESSION['installation_redirect_count']);
+        return;
+    }
+
+    // Installation is incomplete, check for redirect loops
     if (isset($_SESSION['installation_redirect_count'])) {
         $_SESSION['installation_redirect_count']++;
         if ($_SESSION['installation_redirect_count'] > 3) {
@@ -163,25 +174,19 @@ function enforceInstallationCheck() {
                 <p>The system appears to be in a redirect loop. Please manually access the installer:</p>
                 <p><a href="install.php">Click here to access the installer</a></p>
                 <p><a href="installation_status.php">Check installation status</a></p>
+                <p><a href="clear_session.php">Debug installation status</a></p>
             ');
         }
     } else {
         $_SESSION['installation_redirect_count'] = 1;
     }
 
-    $installCheck = checkSystemInstallation();
+    // Log the incomplete installation attempt
+    error_log("Incomplete installation detected: " . json_encode($installCheck));
 
-    if (!$installCheck['installed']) {
-        // Log the incomplete installation attempt
-        error_log("Incomplete installation detected: " . json_encode($installCheck));
-
-        // Redirect to installer
-        header('Location: install.php?incomplete=1');
-        exit;
-    } else {
-        // Installation is complete, clear redirect counter
-        unset($_SESSION['installation_redirect_count']);
-    }
+    // Redirect to installer
+    header('Location: install.php?incomplete=1');
+    exit;
 }
 
 /**
