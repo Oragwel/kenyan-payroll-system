@@ -132,12 +132,18 @@ if ($action === 'list') {
     $employees = $stmt->fetchAll();
 }
 
-// Get employee for editing
-if ($action === 'edit' && isset($_GET['id'])) {
-    $stmt = $db->prepare("SELECT * FROM employees WHERE id = ? AND company_id = ?");
+// Get employee for editing or viewing
+if (($action === 'edit' || $action === 'view') && isset($_GET['id'])) {
+    $stmt = $db->prepare("
+        SELECT e.*, d.name as department_name, p.title as position_title
+        FROM employees e
+        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN job_positions p ON e.position_id = p.id
+        WHERE e.id = ? AND e.company_id = ?
+    ");
     $stmt->execute([$_GET['id'], $_SESSION['company_id']]);
     $employee = $stmt->fetch();
-    
+
     if (!$employee) {
         header('Location: index.php?page=employees');
         exit;
@@ -746,6 +752,149 @@ function handleBulkImport($file) {
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    <?php elseif ($action === 'view'): ?>
+        <!-- View Employee Details -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-eye"></i> Employee Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Employee Number:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['employee_number']); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Full Name:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['first_name'] . ' ' . ($employee['middle_name'] ? $employee['middle_name'] . ' ' : '') . $employee['last_name']); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>ID Number:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['id_number'] ?? 'Not provided'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Email:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['email'] ?? 'Not provided'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Phone:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['phone'] ?? 'Not provided'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Hire Date:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo $employee['hire_date'] ? date('F j, Y', strtotime($employee['hire_date'])) : 'Not provided'; ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Department:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['department_name'] ?? 'Not assigned'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Position:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo htmlspecialchars($employee['position_title'] ?? 'Not assigned'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Employment Type:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo ucfirst($employee['contract_type'] ?? 'Not specified'); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Basic Salary:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <?php echo formatCurrency($employee['basic_salary']); ?>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <strong>Employment Status:</strong>
+                            </div>
+                            <div class="col-md-8">
+                                <span class="badge status-<?php echo $employee['employment_status']; ?>">
+                                    <?php echo ucfirst($employee['employment_status']); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="fas fa-university"></i> Banking Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Bank:</strong><br>
+                                <?php echo htmlspecialchars($employee['bank_name'] ?? 'Not provided'); ?></p>
+
+                                <p><strong>Branch:</strong><br>
+                                <?php echo htmlspecialchars($employee['bank_branch'] ?? 'Not provided'); ?></p>
+
+                                <p><strong>Account Number:</strong><br>
+                                <?php echo htmlspecialchars($employee['account_number'] ?? 'Not provided'); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="index.php?page=employees" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                    <a href="index.php?page=employees&action=edit&id=<?php echo $employee['id']; ?>" class="btn btn-primary me-2">
+                        <i class="fas fa-edit"></i> Edit Employee
+                    </a>
+                    <a href="index.php?page=payslips&employee_id=<?php echo $employee['id']; ?>" class="btn btn-success">
+                        <i class="fas fa-file-invoice-dollar"></i> View Payslips
+                    </a>
+                </div>
             </div>
         </div>
     <?php endif; ?>
