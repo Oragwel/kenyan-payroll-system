@@ -235,6 +235,19 @@ $statutorySettings = array_merge($statutoryDefaults, $settings['statutory_settin
             margin-bottom: 2rem;
         }
 
+        .company-welcome-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .text-white-75 {
+            color: rgba(255, 255, 255, 0.75) !important;
+        }
+
         .company-card {
             background: white;
             border-radius: 15px;
@@ -306,9 +319,9 @@ $statutorySettings = array_merge($statutoryDefaults, $settings['statutory_settin
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
-                        <h5 class="mb-1"><?php echo htmlspecialchars($company['name'] ?? 'Company Name'); ?></h5>
-                        <small class="opacity-75">KRA PIN: <?php echo htmlspecialchars($company['kra_pin'] ?? 'Not Set'); ?></small>
+                    <div class="company-welcome-card">
+                        <h5 class="mb-1 text-white"><?php echo htmlspecialchars($company['name'] ?? 'Company Name'); ?></h5>
+                        <small class="text-white-75">KRA PIN: <?php echo htmlspecialchars($company['kra_pin'] ?? 'Not Set'); ?></small>
                     </div>
                 </div>
             </div>
