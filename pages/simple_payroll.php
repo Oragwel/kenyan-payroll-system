@@ -114,11 +114,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->commit();
                 $message = "✅ Payroll processed successfully for $processedCount employees!";
                 $messageType = 'success';
-                
+
             } catch (Exception $e) {
                 $db->rollBack();
                 $message = 'Error processing payroll: ' . $e->getMessage();
                 $messageType = 'danger';
+            }
             }
         }
     }
