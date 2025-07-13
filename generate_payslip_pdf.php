@@ -1,10 +1,20 @@
 <?php
+session_start();
 require_once 'config/database.php';
-require_once 'includes/auth.php';
+require_once 'includes/functions.php';
 
 // Check if user is logged in
-if (!isLoggedIn()) {
-    header('Location: login.php');
+if (!isset($_SESSION['user_id'])) {
+    header('Location: index.php?page=auth');
+    exit;
+}
+
+// Initialize database connection
+$database = new Database();
+$db = $database->getConnection();
+
+if (!$db) {
+    header('Location: index.php?page=payslips&error=database');
     exit;
 }
 
