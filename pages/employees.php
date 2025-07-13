@@ -25,22 +25,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'danger';
         }
     } elseif ($action === 'add' || $action === 'edit') {
-        $employeeId = $_POST['employee_id'] ?? null;
-        $firstName = sanitizeInput($_POST['first_name']);
-        $middleName = sanitizeInput($_POST['middle_name']);
-        $lastName = sanitizeInput($_POST['last_name']);
-        $idNumber = sanitizeInput($_POST['id_number']);
-        $email = sanitizeInput($_POST['email']);
-        $phone = sanitizeInput($_POST['phone']);
-        $hireDate = $_POST['hire_date'];
-        $basicSalary = $_POST['basic_salary'];
-        $departmentId = $_POST['department_id'] ?: null;
-        $positionId = $_POST['position_id'] ?: null;
-        $contractType = $_POST['contract_type'];
-        $bankCode = sanitizeInput($_POST['bank_code']);
-        $bankName = sanitizeInput($_POST['bank_name']);
-        $bankBranch = sanitizeInput($_POST['bank_branch']);
-        $accountNumber = sanitizeInput($_POST['account_number']);
+        $employeeId    = $_POST['employee_id'] ?? null;
+$firstName     = sanitizeInput($_POST['first_name']);
+
+function nullIfEmpty($value) {
+    return isset($value) && trim($value) !== '' ? trim($value) : null;
+}
+
+$middleName    = nullIfEmpty(sanitizeInput($_POST['middle_name']));    // Optional
+$lastName      = sanitizeInput($_POST['last_name']);
+$idNumber      = sanitizeInput($_POST['id_number']);
+$email         = nullIfEmpty($_POST['email']);           // Optional
+$phone         = nullIfEmpty($_POST['phone']);           // Optional
+$hireDate      = nullIfEmpty($_POST['hire_date']);       // Optional (must be date or NULL)
+$basicSalary   = nullIfEmpty($_POST['basic_salary']);    // Optional
+$departmentId  = nullIfEmpty($_POST['department_id']);   // Optional
+$positionId    = nullIfEmpty($_POST['position_id']);     // Optional
+$contractType  = nullIfEmpty($_POST['contract_type']);   // Optional
+$bankCode      = nullIfEmpty($_POST['bank_code']);       // Optional
+$bankName      = nullIfEmpty($_POST['bank_name']);       // Optional
+$bankBranch    = nullIfEmpty($_POST['bank_branch']);     // Optional
+$accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
+
         
         if (empty($firstName) || empty($lastName) || empty($basicSalary)) {
             $message = 'Please fill in all required fields (First Name, Last Name, Basic Salary)';
@@ -59,55 +65,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $canProceed = false;
                     }
                 }
+                $hireDate = !empty($_POST['hire_date']) ? $_POST['hire_date'] : null;
 
                 if ($canProceed) {
                     $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
-
-                    $stmt = $db->prepare("
-                        INSERT INTO employees (
-                            company_id, employee_number, first_name, middle_name, last_name,
-                            id_number, email, phone, hire_date, basic_salary, department_id,
-                            position_id, contract_type, bank_code, bank_name, bank_branch, account_number
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-
-                    if ($stmt->execute([
-                        $_SESSION['company_id'], $employeeNumber, $firstName, $middleName,
-                        $lastName, $idNumber, $email, $phone, $hireDate, $basicSalary,
-                        $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
-                    ])) {
-                        $message = 'Employee added successfully';
-                        $messageType = 'success';
-                        logActivity('employee_add', "Added employee: $firstName $lastName");
-                    } else {
-                        $message = 'Failed to add employee';
-                        $messageType = 'danger';
-                    }
-                }
-            } else {
-                // Update employee
-                $stmt = $db->prepare("
-                    UPDATE employees SET
-                        first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
-                        email = ?, phone = ?, hire_date = ?, basic_salary = ?,
-                        department_id = ?, position_id = ?, contract_type = ?,
-                        bank_code = ?, bank_name = ?, bank_branch = ?, account_number = ?
-                    WHERE id = ? AND company_id = ?
-                ");
                 
-                if ($stmt->execute([
-                    $firstName, $middleName, $lastName, $idNumber, $email, $phone,
-                    $hireDate, $basicSalary, $departmentId, $positionId, $contractType,
-                    $bankCode, $bankName, $bankBranch, $accountNumber,
-                    $employeeId, $_SESSION['company_id']
-                ])) {
-                    $message = 'Employee updated successfully';
-                    $messageType = 'success';
-                    logActivity('employee_update', "Updated employee: $firstName $lastName");
-                } else {
-                    $message = 'Failed to update employee';
-                    $messageType = 'danger';
-                }
+                    if ($canProceed) {
+                        $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
+                    
+                        $stmt = $db->prepare("
+                            INSERT INTO employees (
+                                company_id, employee_number, first_name, middle_name, last_name,
+                                id_number, email, phone, hire_date, basic_salary, department_id,
+                                position_id, contract_type, bank_code, bank_name, bank_branch, account_number
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+                    
+                        if ($stmt->execute([
+                            $_SESSION['company_id'], $employeeNumber, $firstName, $middleName, $lastName,
+                            $idNumber, $email, $phone, $hireDate, $basicSalary,
+                            $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
+                        ])) {
+                            $message = 'Employee added successfully';
+                            $messageType = 'success';
+                            logActivity('employee_add', "Added employee: $firstName $middleName $lastName");
+                        } else {
+                            $message = 'Failed to add employee';
+                            $messageType = 'danger';
+                        }
+                    } else {
+                        $stmt = $db->prepare("
+                            UPDATE employees SET
+                                first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
+                                email = ?, phone = ?, hire_date = ?, basic_salary = ?,
+                                department_id = ?, position_id = ?, contract_type = ?,
+                                bank_code = ?, bank_name = ?, bank_branch = ?, account_number = ?
+                            WHERE id = ? AND company_id = ?
+                        ");
+                    
+                        if ($stmt->execute([
+                            $firstName, $middleName, $lastName, $idNumber, $email, $phone,
+                            $hireDate, $basicSalary, $departmentId, $positionId, $contractType,
+                            $bankCode, $bankName, $bankBranch, $accountNumber,
+                            $employeeId, $_SESSION['company_id']
+                        ])) {
+                            $message = 'Employee updated successfully';
+                            $messageType = 'success';
+                            logActivity('employee_update', "Updated employee: $firstName $middleName $lastName");
+                        } else {
+                            $message = 'Failed to update employee';
+                            $messageType = 'danger';
+                        }
+                    }
+                } 
             }
         }
     }
