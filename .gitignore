@@ -63,3 +63,6 @@ yarn-error.log*
 # Build files
 dist/
 build/
+
+# Testing and debugging files
+fatal_error.md
