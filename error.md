@@ -1,1 +1,3 @@
-Fatal error: Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(PARTITION BY pr2.employee_id, pr2.payroll_period_id ORDER BY pr2.id DESC) as rn' at line 9 in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/payroll.php:210 Stack trace: #0 /Applications/MAMP/htdocs/kenyan-payroll-system/pages/payroll.php(210): PDO->prepare('\n SELECT...') #1 /Applications/MAMP/htdocs/kenyan-payroll-system/index.php(80): include('/Applications/M...') #2 {main} thrown in /Applications/MAMP/htdocs/kenyan-payroll-system/pages/payroll.php on line 210 che
+http://localhost:8888/kenyan-payroll-system/index.php?page=payslip&id=1 
+
+results to a 404
