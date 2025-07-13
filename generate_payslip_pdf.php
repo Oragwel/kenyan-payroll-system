@@ -29,7 +29,7 @@ if (!$payslipId) {
 $stmt = $db->prepare("
     SELECT pr.*, e.first_name, e.last_name, e.employee_number as emp_id,
            d.name as department, p.title as position,
-           pp.pay_period_start, pp.pay_period_end, pp.pay_date,
+           pp.start_date as pay_period_start, pp.end_date as pay_period_end, pp.pay_date,
            c.name as company_name, c.address as company_address, c.phone as company_phone
     FROM payroll_records pr
     JOIN employees e ON pr.employee_id = e.id
