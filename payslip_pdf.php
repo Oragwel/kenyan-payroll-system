@@ -9,6 +9,10 @@ session_start();
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
+// Initialize database connection
+$database = new Database();
+$db = $database->getConnection();
+
 // Security check
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
