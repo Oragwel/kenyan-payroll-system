@@ -50,8 +50,15 @@
                                 <i class="fas fa-calculator text-success"></i> 🇰🇪 Payroll Calculator
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="index.php?page=simple_payroll">
+                                <i class="fas fa-bolt text-primary"></i> Quick Payroll
+                            </a></li>
                             <li><a class="dropdown-item" href="index.php?page=payroll">Payroll Periods</a></li>
                             <li><a class="dropdown-item" href="index.php?page=payroll&action=create">Process Payroll</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="index.php?page=payroll_management">
+                                <i class="fas fa-cogs text-warning"></i> Payroll Management
+                            </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="index.php?page=allowances">Allowances</a></li>
                             <li><a class="dropdown-item" href="index.php?page=deductions">Deductions</a></li>

@@ -39,31 +39,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $startDate = $validation['start_date'];
                     $endDate = $validation['end_date'];
 
-                    // Check if period already exists (non-blocking)
-                    $existingPeriod = checkPayrollPeriodExists($_SESSION['company_id'], $startDate, $endDate);
+                    // Check if period already exists and reuse it
+                    $stmt = $db->prepare("
+                        SELECT id, period_name FROM payroll_periods
+                        WHERE company_id = ? AND start_date = ? AND end_date = ?
+                        ORDER BY created_at DESC LIMIT 1
+                    ");
+                    $stmt->execute([$_SESSION['company_id'], $startDate, $endDate]);
+                    $existingPeriod = $stmt->fetch();
 
                     if ($existingPeriod) {
-                        $batchName = $existingPeriod . ' (Reprocessed)';
+                        // Use existing period
+                        $payrollPeriodId = $existingPeriod['id'];
+                        $batchName = $existingPeriod['period_name'];
                     } else {
+                        // Create new period only if none exists
                         $batchName = generatePeriodName($startDate, $endDate);
+                        $stmt = $db->prepare("
+                            INSERT INTO payroll_periods (company_id, period_name, start_date, end_date, pay_date, created_by, status)
+                            VALUES (?, ?, ?, ?, ?, ?, 'completed')
+                        ");
+                        $stmt->execute([
+                            $_SESSION['company_id'],
+                            $batchName,
+                            $startDate,
+                            $endDate,
+                            $payDate,
+                            $_SESSION['user_id']
+                        ]);
+                        $payrollPeriodId = $db->lastInsertId();
                     }
-
-                    // Create payroll batch
-                    $stmt = $db->prepare("
-                        INSERT INTO payroll_periods (company_id, period_name, start_date, end_date, pay_date, created_by, status)
-                        VALUES (?, ?, ?, ?, ?, ?, 'completed')
-                    ");
-                
-                $stmt->execute([
-                    $_SESSION['company_id'], 
-                    $batchName, 
-                    $startDate, 
-                    $endDate, 
-                    $payDate, 
-                    $_SESSION['user_id']
-                ]);
-                
-                $payrollPeriodId = $db->lastInsertId();
                 $processedCount = 0;
                 
                 // Process selected employees

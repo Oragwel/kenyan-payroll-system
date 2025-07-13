@@ -209,11 +209,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
 if ($action === 'list') {
     $stmt = $db->prepare("
         SELECT pp.*, u.username as created_by_name,
-               COUNT(pr.id) as employee_count,
-               SUM(pr.net_pay) as total_net_pay
+               COUNT(DISTINCT pr.employee_id) as employee_count,
+               SUM(latest_records.net_pay) as total_net_pay
         FROM payroll_periods pp
         LEFT JOIN users u ON pp.created_by = u.id
         LEFT JOIN payroll_records pr ON pp.id = pr.payroll_period_id
+        LEFT JOIN (
+            SELECT pr2.*,
+                   ROW_NUMBER() OVER (PARTITION BY pr2.employee_id, pr2.payroll_period_id ORDER BY pr2.id DESC) as rn
+            FROM payroll_records pr2
+        ) latest_records ON pr.id = latest_records.id AND latest_records.rn = 1
         WHERE pp.company_id = ?
         GROUP BY pp.id
         ORDER BY pp.created_at DESC
