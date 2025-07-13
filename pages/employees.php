@@ -91,29 +91,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } else {
-                        $stmt = $db->prepare("
-                            UPDATE employees SET
-                                first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
-                                email = ?, phone = ?, hire_date = ?, basic_salary = ?,
-                                department_id = ?, position_id = ?, contract_type = ?,
-                                bank_code = ?, bank_name = ?, bank_branch = ?, account_number = ?
-                            WHERE id = ? AND company_id = ?
-                        ");
-                    
-                        if ($stmt->execute([
-                            $firstName, $middleName, $lastName, $idNumber, $email, $phone,
-                            $hireDate, $basicSalary, $departmentId, $positionId, $contractType,
-                            $bankCode, $bankName, $bankBranch, $accountNumber,
-                            $employeeId, $_SESSION['company_id']
-                        ])) {
-                            $message = 'Employee updated successfully';
-                            $messageType = 'success';
-                            logActivity('employee_update', "Updated employee: $firstName $middleName $lastName");
-                        } else {
-                            $message = 'Failed to update employee';
-                            $messageType = 'danger';
-                        }
-                    }
+                $stmt = $db->prepare("
+                    UPDATE employees SET
+                        first_name = ?, middle_name = ?, last_name = ?, id_number = ?,
+                        email = ?, phone = ?, hire_date = ?, basic_salary = ?,
+                        department_id = ?, position_id = ?, contract_type = ?,
+                        bank_code = ?, bank_name = ?, bank_branch = ?, account_number = ?
+                    WHERE id = ? AND company_id = ?
+                ");
+
+                if ($stmt->execute([
+                    $firstName, $middleName, $lastName, $idNumber, $email, $phone,
+                    $hireDate, $basicSalary, $departmentId, $positionId, $contractType,
+                    $bankCode, $bankName, $bankBranch, $accountNumber,
+                    $employeeId, $_SESSION['company_id']
+                ])) {
+                    $message = 'Employee updated successfully';
+                    $messageType = 'success';
+                    logActivity('employee_update', "Updated employee: $firstName $middleName $lastName");
+                } else {
+                    $message = 'Failed to update employee';
+                    $messageType = 'danger';
                 }
             }
         }
