@@ -652,9 +652,9 @@ function handleBulkImport($file) {
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="bank_code" class="form-label">Bank <small class="text-muted">(optional)</small></label>
+                                        <label for="bank_code" class="form-label">Bank Code <small class="text-muted">(optional)</small></label>
                                         <select class="form-select" id="bank_code" name="bank_code" onchange="updateBankName()">
-                                            <option value="">Select Bank</option>
+                                            <option value="">Select Bank Code</option>
                                             <option value="12053" <?php echo ($employee['bank_code'] ?? '') === '12053' ? 'selected' : ''; ?>>National Bank</option>
                                             <option value="68058" <?php echo ($employee['bank_code'] ?? '') === '68058' ? 'selected' : ''; ?>>Equity Bank</option>
                                             <option value="01169" <?php echo ($employee['bank_code'] ?? '') === '01169' ? 'selected' : ''; ?>>KCB Bank</option>
@@ -740,7 +740,7 @@ function handleBulkImport($file) {
                                     <div class="alert alert-info mb-0">
                                         <small>
                                             <i class="fas fa-info-circle"></i>
-                                            <strong>Banking Information:</strong> This information will be used for salary payments and official records.
+                                            <strong>Banking Information:</strong> Select the bank code to auto-fill the bank name. This information will be used for salary payments and official records.
                                             Ensure all details are accurate and match your bank account.
                                         </small>
                                     </div>
