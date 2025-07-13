@@ -69,23 +69,20 @@ $accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
 
                 if ($canProceed) {
                     $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
-                
-                    if ($canProceed) {
-                        $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
-                    
-                        $stmt = $db->prepare("
-                            INSERT INTO employees (
-                                company_id, employee_number, first_name, middle_name, last_name,
-                                id_number, email, phone, hire_date, basic_salary, department_id,
-                                position_id, contract_type, bank_code, bank_name, bank_branch, account_number
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ");
-                    
-                        if ($stmt->execute([
-                            $_SESSION['company_id'], $employeeNumber, $firstName, $middleName, $lastName,
-                            $idNumber, $email, $phone, $hireDate, $basicSalary,
-                            $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
-                        ])) {
+
+                    $stmt = $db->prepare("
+                        INSERT INTO employees (
+                            company_id, employee_number, first_name, middle_name, last_name,
+                            id_number, email, phone, hire_date, basic_salary, department_id,
+                            position_id, contract_type, bank_code, bank_name, bank_branch, account_number
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+
+                    if ($stmt->execute([
+                        $_SESSION['company_id'], $employeeNumber, $firstName, $middleName, $lastName,
+                        $idNumber, $email, $phone, $hireDate, $basicSalary,
+                        $departmentId, $positionId, $contractType, $bankCode, $bankName, $bankBranch, $accountNumber
+                    ])) {
                             $message = 'Employee added successfully';
                             $messageType = 'success';
                             logActivity('employee_add', "Added employee: $firstName $middleName $lastName");
@@ -269,9 +266,9 @@ function handleBulkImport($file) {
             $positionId = $positions[strtolower($employee['position_title'])] ?? null;
         }
 
-        // Validate employment type
+        // Validate employment type (optional, defaults to permanent)
         $validEmploymentTypes = ['permanent', 'contract', 'casual', 'intern'];
-        $contractType = strtolower($employee['employment_type']);
+        $contractType = !empty($employee['employment_type']) ? strtolower($employee['employment_type']) : 'permanent';
         if (!in_array($contractType, $validEmploymentTypes)) {
             $contractType = 'permanent';
         }
@@ -541,7 +538,7 @@ function handleBulkImport($file) {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="middle_name" class="form-label">Middle Name</label>
+                                <label for="middle_name" class="form-label">Middle Name <small class="text-muted">(optional)</small></label>
                                 <input type="text" class="form-control" id="middle_name" name="middle_name" 
                                        value="<?php echo htmlspecialchars($employee['middle_name'] ?? ''); ?>">
                             </div>
@@ -558,14 +555,14 @@ function handleBulkImport($file) {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="id_number" class="form-label">ID Number</label>
+                                <label for="id_number" class="form-label">ID Number <small class="text-muted">(optional)</small></label>
                                 <input type="text" class="form-control" id="id_number" name="id_number"
                                        value="<?php echo htmlspecialchars($employee['id_number'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email</label>
+                                <label for="email" class="form-label">Email <small class="text-muted">(optional)</small></label>
                                 <input type="email" class="form-control" id="email" name="email" 
                                        value="<?php echo htmlspecialchars($employee['email'] ?? ''); ?>">
                             </div>
@@ -575,14 +572,14 @@ function handleBulkImport($file) {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="phone" class="form-label">Phone Number</label>
+                                <label for="phone" class="form-label">Phone Number <small class="text-muted">(optional)</small></label>
                                 <input type="text" class="form-control" id="phone" name="phone" 
                                        value="<?php echo htmlspecialchars($employee['phone'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="hire_date" class="form-label">Hire Date</label>
+                                <label for="hire_date" class="form-label">Hire Date <small class="text-muted">(optional)</small></label>
                                 <input type="date" class="form-control" id="hire_date" name="hire_date"
                                        value="<?php echo $employee['hire_date'] ?? ''; ?>">
                             </div>
@@ -592,7 +589,7 @@ function handleBulkImport($file) {
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="department_id" class="form-label">Department</label>
+                                <label for="department_id" class="form-label">Department <small class="text-muted">(optional)</small></label>
                                 <select class="form-select" id="department_id" name="department_id">
                                     <option value="">Select Department</option>
                                     <?php foreach ($departments as $dept): ?>
@@ -606,7 +603,7 @@ function handleBulkImport($file) {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="position_id" class="form-label">Position</label>
+                                <label for="position_id" class="form-label">Position <small class="text-muted">(optional)</small></label>
                                 <select class="form-select" id="position_id" name="position_id">
                                     <option value="">Select Position</option>
                                     <?php foreach ($positions as $pos): ?>
@@ -620,8 +617,8 @@ function handleBulkImport($file) {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="contract_type" class="form-label">Employment Type *</label>
-                                <select class="form-select" id="contract_type" name="contract_type" required>
+                                <label for="contract_type" class="form-label">Employment Type <small class="text-muted">(optional)</small></label>
+                                <select class="form-select" id="contract_type" name="contract_type">
                                     <option value="">Select Type</option>
                                     <option value="permanent" <?php echo ($employee['contract_type'] ?? '') === 'permanent' ? 'selected' : ''; ?>>Permanent</option>
                                     <option value="contract" <?php echo ($employee['contract_type'] ?? '') === 'contract' ? 'selected' : ''; ?>>Contract</option>
@@ -651,7 +648,7 @@ function handleBulkImport($file) {
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="bank_code" class="form-label">Bank *</label>
+                                        <label for="bank_code" class="form-label">Bank <small class="text-muted">(optional)</small></label>
                                         <select class="form-select" id="bank_code" name="bank_code" onchange="updateBankName()">
                                             <option value="">Select Bank</option>
                                             <option value="01" <?php echo ($employee['bank_code'] ?? '') === '01' ? 'selected' : ''; ?>>Kenya Commercial Bank (KCB)</option>
@@ -707,7 +704,7 @@ function handleBulkImport($file) {
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="bank_name" class="form-label">Bank Name</label>
+                                        <label for="bank_name" class="form-label">Bank Name <small class="text-muted">(optional)</small></label>
                                         <input type="text" class="form-control" id="bank_name" name="bank_name"
                                                value="<?php echo htmlspecialchars($employee['bank_name'] ?? ''); ?>" readonly>
                                         <small class="form-text text-muted">Auto-populated when bank is selected</small>
@@ -715,7 +712,7 @@ function handleBulkImport($file) {
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="account_number" class="form-label">Account Number</label>
+                                        <label for="account_number" class="form-label">Account Number <small class="text-muted">(optional)</small></label>
                                         <input type="text" class="form-control" id="account_number" name="account_number"
                                                value="<?php echo htmlspecialchars($employee['account_number'] ?? ''); ?>"
                                                placeholder="Enter account number">
@@ -725,7 +722,7 @@ function handleBulkImport($file) {
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="bank_branch" class="form-label">Bank Branch</label>
+                                        <label for="bank_branch" class="form-label">Bank Branch <small class="text-muted">(optional)</small></label>
                                         <input type="text" class="form-control" id="bank_branch" name="bank_branch"
                                                value="<?php echo htmlspecialchars($employee['bank_branch'] ?? ''); ?>"
                                                placeholder="e.g., Nairobi Branch, Mombasa Road">
@@ -778,6 +775,9 @@ function handleBulkImport($file) {
                                 <li><strong>basic_salary</strong> - Monthly salary amount (required)</li>
                                 <li><strong>id_number</strong> - National ID number (optional, must be unique if provided)</li>
                                 <li><strong>hire_date</strong> - Date format: YYYY-MM-DD (optional)</li>
+                                <li><strong>employment_type</strong> - permanent, contract, casual, intern (optional, defaults to permanent)</li>
+                                <li><strong>email</strong> - Employee email address (optional)</li>
+                                <li><strong>phone</strong> - Phone number in +254XXXXXXXXX format (optional)</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
