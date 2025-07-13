@@ -653,7 +653,7 @@ function handleBulkImport($file) {
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label for="bank_code" class="form-label">Bank Code <small class="text-muted">(optional)</small></label>
-                                        <select class="form-select" id="bank_code" name="bank_code" onchange="updateBankName()">
+                                        <select class="form-select searchable-select" id="bank_code" name="bank_code" onchange="updateBankName()" data-placeholder="Search by code or bank name...">
                                             <option value="">Select Bank Code</option>
                                             <option value="12053" <?php echo ($employee['bank_code'] ?? '') === '12053' ? 'selected' : ''; ?>>12053 - National Bank</option>
                                             <option value="68058" <?php echo ($employee['bank_code'] ?? '') === '68058' ? 'selected' : ''; ?>>68058 - Equity Bank</option>
@@ -1105,11 +1105,171 @@ function updateBankName() {
 // Initialize bank name on page load if bank code is already selected
 document.addEventListener('DOMContentLoaded', function() {
     updateBankName();
+    initializeSearchableSelect();
 });
 
 // Download CSV template
 function downloadTemplate() {
     window.open('download_template.php?type=employees', '_blank');
+}
+
+// Searchable Select Implementation
+function initializeSearchableSelect() {
+    const selectElement = document.getElementById('bank_code');
+    if (!selectElement || !selectElement.classList.contains('searchable-select')) return;
+
+    // Create container
+    const container = document.createElement('div');
+    container.className = 'searchable-select-container';
+    selectElement.parentNode.insertBefore(container, selectElement);
+
+    // Create input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control searchable-select-input';
+    input.placeholder = selectElement.dataset.placeholder || 'Search...';
+    input.autocomplete = 'off';
+
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'searchable-select-dropdown';
+
+    // Store original options
+    const options = Array.from(selectElement.options).map(option => ({
+        value: option.value,
+        text: option.textContent,
+        selected: option.selected
+    }));
+
+    // Set initial value if there's a selected option
+    const selectedOption = options.find(opt => opt.selected);
+    if (selectedOption) {
+        input.value = selectedOption.text;
+    }
+
+    // Hide original select
+    selectElement.style.display = 'none';
+
+    // Add elements to container
+    container.appendChild(input);
+    container.appendChild(dropdown);
+    container.appendChild(selectElement);
+
+    // Filter and display options
+    function filterOptions(searchTerm = '') {
+        dropdown.innerHTML = '';
+        const filteredOptions = options.filter(option => {
+            if (!option.value) return false; // Skip empty option
+            return option.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                   option.value.includes(searchTerm);
+        });
+
+        filteredOptions.forEach((option, index) => {
+            const optionElement = document.createElement('div');
+            optionElement.className = 'searchable-select-option';
+            optionElement.textContent = option.text;
+            optionElement.dataset.value = option.value;
+
+            if (option.selected) {
+                optionElement.classList.add('selected');
+            }
+
+            optionElement.addEventListener('click', function() {
+                selectOption(option);
+            });
+
+            dropdown.appendChild(optionElement);
+        });
+
+        return filteredOptions;
+    }
+
+    // Select an option
+    function selectOption(option) {
+        input.value = option.text;
+        selectElement.value = option.value;
+
+        // Update selected state
+        options.forEach(opt => opt.selected = false);
+        option.selected = true;
+
+        // Update visual state
+        dropdown.querySelectorAll('.searchable-select-option').forEach(el => {
+            el.classList.remove('selected');
+        });
+        dropdown.querySelector(`[data-value="${option.value}"]`)?.classList.add('selected');
+
+        hideDropdown();
+        updateBankName(); // Trigger bank name update
+
+        // Trigger change event
+        selectElement.dispatchEvent(new Event('change'));
+    }
+
+    // Show dropdown
+    function showDropdown() {
+        filterOptions(input.value);
+        dropdown.style.display = 'block';
+    }
+
+    // Hide dropdown
+    function hideDropdown() {
+        dropdown.style.display = 'none';
+    }
+
+    // Event listeners
+    input.addEventListener('focus', showDropdown);
+    input.addEventListener('input', function() {
+        filterOptions(this.value);
+        showDropdown();
+    });
+
+    // Keyboard navigation
+    input.addEventListener('keydown', function(e) {
+        const visibleOptions = dropdown.querySelectorAll('.searchable-select-option');
+        const highlighted = dropdown.querySelector('.highlighted');
+        let currentIndex = highlighted ? Array.from(visibleOptions).indexOf(highlighted) : -1;
+
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (currentIndex < visibleOptions.length - 1) {
+                    if (highlighted) highlighted.classList.remove('highlighted');
+                    visibleOptions[currentIndex + 1].classList.add('highlighted');
+                }
+                break;
+
+            case 'ArrowUp':
+                e.preventDefault();
+                if (currentIndex > 0) {
+                    if (highlighted) highlighted.classList.remove('highlighted');
+                    visibleOptions[currentIndex - 1].classList.add('highlighted');
+                }
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (highlighted) {
+                    const option = options.find(opt => opt.value === highlighted.dataset.value);
+                    if (option) selectOption(option);
+                }
+                break;
+
+            case 'Escape':
+                hideDropdown();
+                break;
+        }
+    });
+
+    // Click outside to close
+    document.addEventListener('click', function(e) {
+        if (!container.contains(e.target)) {
+            hideDropdown();
+        }
+    });
+
+    // Initial filter
+    filterOptions();
 }
 
 // File validation
@@ -1257,5 +1417,63 @@ document.getElementById('bank_code')?.addEventListener('change', function() {
 .search-input:focus {
     border-color: var(--kenya-dark-green);
     box-shadow: 0 0 0 0.2rem rgba(0, 107, 63, 0.25);
+}
+
+/* Searchable Select Styles */
+.searchable-select-container {
+    position: relative;
+}
+
+.searchable-select-input {
+    width: 100%;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    cursor: pointer;
+}
+
+.searchable-select-input:focus {
+    border-color: var(--kenya-green);
+    box-shadow: 0 0 0 0.2rem rgba(0, 107, 63, 0.25);
+    outline: 0;
+}
+
+.searchable-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.searchable-select-option {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.searchable-select-option:hover {
+    background-color: #f8f9fa;
+}
+
+.searchable-select-option.selected {
+    background-color: var(--kenya-green);
+    color: white;
+}
+
+.searchable-select-option.highlighted {
+    background-color: #e9ecef;
 }
 </style>
