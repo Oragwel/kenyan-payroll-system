@@ -913,9 +913,15 @@ body {
                                 </a>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <a href="index.php?page=payroll&action=create" class="quick-action-btn primary">
+                                <a href="index.php?page=simple_payroll" class="quick-action-btn primary">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Quick Payroll
+                                </a>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <a href="index.php?page=payroll&action=create" class="quick-action-btn secondary">
                                     <i class="fas fa-calculator me-2"></i>
-                                    Process Payroll
+                                    Advanced Payroll
                                 </a>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -1130,9 +1136,13 @@ body {
                                 <i class="fas fa-user-plus me-2"></i>
                                 Add New Employee
                             </a>
-                            <a href="index.php?page=payroll&action=create" class="btn btn-success btn-lg">
+                            <a href="index.php?page=simple_payroll" class="btn btn-success btn-lg">
+                                <i class="fas fa-rocket me-2"></i>
+                                Quick Payroll
+                            </a>
+                            <a href="index.php?page=payroll&action=create" class="btn btn-outline-primary btn-lg">
                                 <i class="fas fa-calculator me-2"></i>
-                                Process Payroll
+                                Advanced Payroll
                             </a>
                             <a href="index.php?page=reports" class="btn btn-outline-primary btn-lg">
                                 <i class="fas fa-file-alt me-2"></i>

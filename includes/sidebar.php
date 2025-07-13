@@ -89,9 +89,13 @@
                 <div class="list-group-item bg-secondary text-white">
                     <small><strong>PAYROLL MANAGEMENT</strong></small>
                 </div>
-                
+
+                <a href="index.php?page=simple_payroll" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'simple_payroll' ? 'active' : ''; ?>">
+                    <i class="fas fa-rocket"></i> Quick Payroll
+                </a>
+
                 <a href="index.php?page=payroll" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'payroll' ? 'active' : ''; ?>">
-                    <i class="fas fa-calculator"></i> Payroll Processing
+                    <i class="fas fa-calculator"></i> Advanced Payroll
                 </a>
                 
                 <a href="index.php?page=allowances" class="list-group-item list-group-item-action <?php echo ($_GET['page'] ?? '') === 'allowances' ? 'active' : ''; ?>">
