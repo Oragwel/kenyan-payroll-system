@@ -19,6 +19,28 @@ require_once 'secure_auth.php';
 $page = $_GET['page'] ?? 'dashboard';
 $action = $_GET['action'] ?? 'index';
 
+// Handle common URL mistakes - redirect payslip (singular) to payslips (plural)
+if ($page === 'payslip') {
+    $redirectUrl = 'index.php?page=payslips';
+
+    // Preserve parameters with correct names
+    if (isset($_GET['id'])) {
+        $redirectUrl .= '&action=view&payslip_id=' . urlencode($_GET['id']);
+    } elseif (isset($_GET['payslip_id'])) {
+        $redirectUrl .= '&action=view&payslip_id=' . urlencode($_GET['payslip_id']);
+    }
+
+    // Preserve other parameters
+    foreach ($_GET as $key => $value) {
+        if (!in_array($key, ['page', 'id', 'payslip_id'])) {
+            $redirectUrl .= '&' . urlencode($key) . '=' . urlencode($value);
+        }
+    }
+
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
 // Handle PDF generation BEFORE any headers are sent
 if ($page === 'payslips' && $action === 'pdf' && isset($_GET['payslip_id'])) {
     header('Location: payslip_pdf.php?payslip_id=' . urlencode($_GET['payslip_id']));
