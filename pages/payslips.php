@@ -23,11 +23,11 @@ if ($employeeId) {
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN job_positions p ON e.position_id = p.id
-        WHERE e.id = ? AND e.company_id = ?
+        WHERE e.id = ? AND e.company_id = ? AND e.employment_status = 'active'
     ");
     $stmt->execute([$employeeId, $_SESSION['company_id']]);
     $employee = $stmt->fetch();
-    
+
     if (!$employee) {
         header('Location: index.php?page=payslips');
         exit;
@@ -36,7 +36,7 @@ if ($employeeId) {
 
 // Get payslips based on user role and filters
 if ($action === 'view' && $payslipId) {
-    // Get specific payslip
+    // Get specific payslip (only for active employees)
     $stmt = $db->prepare("
         SELECT pr.*, pp.period_name, pp.pay_date, pp.start_date, pp.end_date,
                e.employee_number, e.first_name, e.last_name, e.id_number,
@@ -46,11 +46,11 @@ if ($action === 'view' && $payslipId) {
         JOIN employees e ON pr.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id
         LEFT JOIN job_positions p ON e.position_id = p.id
-        WHERE pr.id = ? AND e.company_id = ?
+        WHERE pr.id = ? AND e.company_id = ? AND e.employment_status = 'active'
     ");
     $stmt->execute([$payslipId, $_SESSION['company_id']]);
     $payslip = $stmt->fetch();
-    
+
     if (!$payslip) {
         header('Location: index.php?page=payslips');
         exit;
@@ -64,7 +64,7 @@ if ($action === 'view' && $payslipId) {
 } else {
     // Get payslips list
     if (hasPermission('hr') && !$employeeId) {
-        // HR can see all payslips
+        // HR can see all payslips (but only for active employees)
         $stmt = $db->prepare("
             SELECT pr.*, pp.period_name, pp.pay_date,
                    CONCAT(e.first_name, ' ', e.last_name) as employee_name,
@@ -72,12 +72,12 @@ if ($action === 'view' && $payslipId) {
             FROM payroll_records pr
             JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
             JOIN employees e ON pr.employee_id = e.id
-            WHERE e.company_id = ?
+            WHERE e.company_id = ? AND e.employment_status = 'active'
             ORDER BY pp.pay_date DESC, e.employee_number
         ");
         $stmt->execute([$_SESSION['company_id']]);
     } else {
-        // Employee or specific employee payslips
+        // Employee or specific employee payslips (only for active employees)
         $targetEmployeeId = $employeeId ?: $_SESSION['employee_id'];
         $stmt = $db->prepare("
             SELECT pr.*, pp.period_name, pp.pay_date, pp.start_date, pp.end_date,
@@ -86,7 +86,7 @@ if ($action === 'view' && $payslipId) {
             FROM payroll_records pr
             JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
             JOIN employees e ON pr.employee_id = e.id
-            WHERE pr.employee_id = ? AND e.company_id = ?
+            WHERE pr.employee_id = ? AND e.company_id = ? AND e.employment_status = 'active'
             ORDER BY pp.pay_date DESC
         ");
         $stmt->execute([$targetEmployeeId, $_SESSION['company_id']]);

@@ -42,10 +42,10 @@ if ($_SESSION['user_role'] === 'admin') {
         SELECT
             COUNT(*) as total_employees,
             SUM(CASE WHEN employment_status = 'active' THEN 1 ELSE 0 END) as active_employees,
-            SUM(CASE WHEN contract_type = 'permanent' THEN 1 ELSE 0 END) as permanent_employees,
-            SUM(CASE WHEN contract_type = 'contract' THEN 1 ELSE 0 END) as contract_employees,
-            SUM(CASE WHEN contract_type = 'casual' THEN 1 ELSE 0 END) as casual_employees,
-            SUM(CASE WHEN contract_type = 'intern' THEN 1 ELSE 0 END) as intern_employees
+            SUM(CASE WHEN contract_type = 'permanent' AND employment_status = 'active' THEN 1 ELSE 0 END) as permanent_employees,
+            SUM(CASE WHEN contract_type = 'contract' AND employment_status = 'active' THEN 1 ELSE 0 END) as contract_employees,
+            SUM(CASE WHEN contract_type = 'casual' AND employment_status = 'active' THEN 1 ELSE 0 END) as casual_employees,
+            SUM(CASE WHEN contract_type = 'intern' AND employment_status = 'active' THEN 1 ELSE 0 END) as intern_employees
         FROM employees
         WHERE company_id = ?
     ");
@@ -70,7 +70,8 @@ if ($_SESSION['user_role'] === 'admin') {
                     COUNT(*) as payroll_records
                 FROM payroll_records pr
                 JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ?
+                JOIN employees e ON pr.employee_id = e.id
+                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ? AND e.employment_status = 'active'
             ");
             $stmt->execute([$_SESSION['company_id'], $currentMonth]);
             $payrollStats = $stmt->fetch();
@@ -114,7 +115,7 @@ if ($_SESSION['user_role'] === 'admin') {
                     SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_leaves
                 FROM leave_applications la
                 JOIN employees e ON la.employee_id = e.id
-                WHERE e.company_id = ?
+                WHERE e.company_id = ? AND e.employment_status = 'active'
             ");
             $stmt->execute([$_SESSION['company_id']]);
             $leaveStats = $stmt->fetch();
@@ -205,7 +206,8 @@ if ($_SESSION['user_role'] === 'admin') {
                     COUNT(pr.id) as employee_count
                 FROM payroll_periods pp
                 JOIN payroll_records pr ON pp.id = pr.payroll_period_id
-                WHERE pp.company_id = ?
+                JOIN employees e ON pr.employee_id = e.id
+                WHERE pp.company_id = ? AND e.employment_status = 'active'
                 AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
                 GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m'), DATE_FORMAT(pp.start_date, '%M %Y'), DATE_FORMAT(pp.start_date, '%b')
                 ORDER BY month ASC
@@ -220,14 +222,14 @@ if ($_SESSION['user_role'] === 'admin') {
         $monthlyTrends = [];
     }
 
-    // Employee Growth Analytics
+    // Employee Growth Analytics (only active employees)
     $stmt = $db->prepare("
         SELECT
             DATE_FORMAT(created_at, '%Y-%m') as month,
             DATE_FORMAT(created_at, '%M %Y') as month_name,
             COUNT(*) as new_employees
         FROM employees
-        WHERE company_id = ?
+        WHERE company_id = ? AND employment_status = 'active'
         AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
         GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
         ORDER BY month ASC

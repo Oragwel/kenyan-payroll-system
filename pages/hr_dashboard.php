@@ -14,27 +14,27 @@ $stats = [];
 
 // Get employee statistics
 $stmt = $db->prepare("
-    SELECT 
+    SELECT
         COUNT(*) as total_employees,
         SUM(CASE WHEN employment_status = 'active' THEN 1 ELSE 0 END) as active_employees,
-        SUM(CASE WHEN contract_type = 'permanent' THEN 1 ELSE 0 END) as permanent_employees,
-        SUM(CASE WHEN contract_type = 'contract' THEN 1 ELSE 0 END) as contract_employees,
-        SUM(CASE WHEN contract_type = 'casual' THEN 1 ELSE 0 END) as casual_employees
-    FROM employees 
+        SUM(CASE WHEN contract_type = 'permanent' AND employment_status = 'active' THEN 1 ELSE 0 END) as permanent_employees,
+        SUM(CASE WHEN contract_type = 'contract' AND employment_status = 'active' THEN 1 ELSE 0 END) as contract_employees,
+        SUM(CASE WHEN contract_type = 'casual' AND employment_status = 'active' THEN 1 ELSE 0 END) as casual_employees
+    FROM employees
     WHERE company_id = ?
 ");
 $stmt->execute([$_SESSION['company_id']]);
 $stats = $stmt->fetch();
 
-// Get leave statistics
+// Get leave statistics (only for active employees)
 $stmt = $db->prepare("
-    SELECT 
+    SELECT
         COUNT(*) as total_applications,
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_leaves,
         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_leaves
-    FROM leave_applications la 
-    JOIN employees e ON la.employee_id = e.id 
-    WHERE e.company_id = ?
+    FROM leave_applications la
+    JOIN employees e ON la.employee_id = e.id
+    WHERE e.company_id = ? AND e.employment_status = 'active'
 ");
 $stmt->execute([$_SESSION['company_id']]);
 $leaveStats = $stmt->fetch();
@@ -53,12 +53,12 @@ $stmt = $db->prepare("
 $stmt->execute([$_SESSION['company_id']]);
 $recentLeaves = $stmt->fetchAll();
 
-// Get recent employee additions
+// Get recent employee additions (only active employees)
 $stmt = $db->prepare("
     SELECT e.*, d.name as department_name
     FROM employees e
     LEFT JOIN departments d ON e.department_id = d.id
-    WHERE e.company_id = ?
+    WHERE e.company_id = ? AND e.employment_status = 'active'
     ORDER BY e.created_at DESC
     LIMIT 5
 ");
@@ -66,14 +66,14 @@ $stmt->execute([$_SESSION['company_id']]);
 $recentEmployees = $stmt->fetchAll();
 
 // HR Analytics Data
-// Monthly employee additions (last 6 months)
+// Monthly employee additions (last 6 months, only active employees)
 $stmt = $db->prepare("
     SELECT
         DATE_FORMAT(created_at, '%Y-%m') as month,
         DATE_FORMAT(created_at, '%M') as month_name,
         COUNT(*) as new_employees
     FROM employees
-    WHERE company_id = ?
+    WHERE company_id = ? AND employment_status = 'active'
     AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
     GROUP BY DATE_FORMAT(created_at, '%Y-%m')
     ORDER BY created_at ASC
@@ -97,7 +97,7 @@ $stmt = $db->prepare("
 $stmt->execute([$_SESSION['company_id']]);
 $departmentAnalytics = $stmt->fetchAll();
 
-// Leave trends by month
+// Leave trends by month (only for active employees)
 $stmt = $db->prepare("
     SELECT
         DATE_FORMAT(la.created_at, '%Y-%m') as month,
@@ -107,7 +107,7 @@ $stmt = $db->prepare("
         SUM(CASE WHEN la.status = 'pending' THEN 1 ELSE 0 END) as pending
     FROM leave_applications la
     JOIN employees e ON la.employee_id = e.id
-    WHERE e.company_id = ?
+    WHERE e.company_id = ? AND e.employment_status = 'active'
     AND la.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
     GROUP BY DATE_FORMAT(la.created_at, '%Y-%m')
     ORDER BY la.created_at ASC
