@@ -19,7 +19,72 @@ function nullIfEmpty($value) {
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'bulk_import') {
+    if ($action === 'delete') {
+        // Handle individual employee deletion
+        $employeeId = $_POST['employee_id'] ?? null;
+        if ($employeeId) {
+            try {
+                // Check if employee has payroll records
+                $stmt = $db->prepare("SELECT COUNT(*) FROM payroll_records WHERE employee_id = ?");
+                $stmt->execute([$employeeId]);
+                $payrollCount = $stmt->fetchColumn();
+
+                if ($payrollCount > 0) {
+                    // Don't delete, just deactivate
+                    $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated', termination_date = CURDATE() WHERE id = ? AND company_id = ?");
+                    $stmt->execute([$employeeId, $_SESSION['company_id']]);
+                    $message = 'Employee has been deactivated (has payroll records)';
+                    $messageType = 'warning';
+                } else {
+                    // Safe to delete
+                    $stmt = $db->prepare("DELETE FROM employees WHERE id = ? AND company_id = ?");
+                    $stmt->execute([$employeeId, $_SESSION['company_id']]);
+                    $message = 'Employee deleted successfully';
+                    $messageType = 'success';
+                }
+            } catch (Exception $e) {
+                $message = 'Error deleting employee: ' . $e->getMessage();
+                $messageType = 'danger';
+            }
+        }
+    } elseif ($action === 'bulk_delete') {
+        // Handle bulk employee deletion
+        $employeeIds = $_POST['employee_ids'] ?? [];
+        if (!empty($employeeIds)) {
+            try {
+                $deletedCount = 0;
+                $deactivatedCount = 0;
+
+                foreach ($employeeIds as $employeeId) {
+                    // Check if employee has payroll records
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM payroll_records WHERE employee_id = ?");
+                    $stmt->execute([$employeeId]);
+                    $payrollCount = $stmt->fetchColumn();
+
+                    if ($payrollCount > 0) {
+                        // Don't delete, just deactivate
+                        $stmt = $db->prepare("UPDATE employees SET employment_status = 'terminated', termination_date = CURDATE() WHERE id = ? AND company_id = ?");
+                        $stmt->execute([$employeeId, $_SESSION['company_id']]);
+                        $deactivatedCount++;
+                    } else {
+                        // Safe to delete
+                        $stmt = $db->prepare("DELETE FROM employees WHERE id = ? AND company_id = ?");
+                        $stmt->execute([$employeeId, $_SESSION['company_id']]);
+                        $deletedCount++;
+                    }
+                }
+
+                $message = "Bulk operation completed: {$deletedCount} deleted, {$deactivatedCount} deactivated";
+                $messageType = 'success';
+            } catch (Exception $e) {
+                $message = 'Error in bulk deletion: ' . $e->getMessage();
+                $messageType = 'danger';
+            }
+        } else {
+            $message = 'No employees selected for deletion';
+            $messageType = 'warning';
+        }
+    } elseif ($action === 'bulk_import') {
         // Handle CSV bulk import
         if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
             $result = handleBulkImport($_FILES['csv_file']);
@@ -409,6 +474,9 @@ function handleBulkImport($file) {
                         <button type="button" class="btn btn-info" onclick="downloadTemplate()">
                             <i class="fas fa-download"></i> CSV Template
                         </button>
+                        <button type="button" class="btn btn-danger" onclick="toggleBulkDelete()" id="bulkDeleteBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> Bulk Delete
+                        </button>
                     </div>
                 <?php elseif ($action === 'bulk_import'): ?>
                     <a href="index.php?page=employees" class="btn btn-secondary">
@@ -446,9 +514,14 @@ function handleBulkImport($file) {
             <div class="card-body">
                 <?php if (!empty($employees)): ?>
                     <div class="table-responsive">
+                        <form id="bulkDeleteForm" method="POST" action="index.php?page=employees&action=bulk_delete">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                        <label for="selectAll" class="ms-1">Select</label>
+                                    </th>
                                     <th>Employee #</th>
                                     <th>Name</th>
                                     <th>ID Number</th>
@@ -462,6 +535,9 @@ function handleBulkImport($file) {
                             <tbody>
                                 <?php foreach ($employees as $emp): ?>
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" name="employee_ids[]" value="<?php echo $emp['id']; ?>" class="employee-checkbox" onchange="updateBulkDeleteButton()">
+                                        </td>
                                         <td><?php echo htmlspecialchars($emp['employee_number']); ?></td>
                                         <td>
                                             <div class="d-flex align-items-center">
@@ -486,24 +562,44 @@ function handleBulkImport($file) {
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="index.php?page=employees&action=view&id=<?php echo $emp['id']; ?>" 
+                                                <a href="index.php?page=employees&action=view&id=<?php echo $emp['id']; ?>"
                                                    class="btn btn-outline-info" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="index.php?page=employees&action=edit&id=<?php echo $emp['id']; ?>" 
+                                                <a href="index.php?page=employees&action=edit&id=<?php echo $emp['id']; ?>"
                                                    class="btn btn-outline-primary" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="index.php?page=payslips&employee_id=<?php echo $emp['id']; ?>" 
+                                                <a href="index.php?page=payslips&employee_id=<?php echo $emp['id']; ?>"
                                                    class="btn btn-outline-success" title="Payslips">
                                                     <i class="fas fa-receipt"></i>
                                                 </a>
+                                                <button type="button" class="btn btn-outline-danger" title="Delete"
+                                                        onclick="deleteEmployee(<?php echo $emp['id']; ?>, '<?php echo htmlspecialchars($emp['first_name'] . ' ' . $emp['last_name']); ?>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        </form>
+
+                        <!-- Bulk Delete Controls -->
+                        <div id="bulkDeleteControls" style="display: none;" class="mt-3 p-3 bg-light border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span id="selectedCount">0 employees selected</span>
+                                <div>
+                                    <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">
+                                        <i class="fas fa-trash"></i> Delete Selected
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="clearSelection()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 <?php else: ?>
                     <div class="text-center py-5">
@@ -1476,4 +1572,94 @@ document.getElementById('bank_code')?.addEventListener('change', function() {
 .searchable-select-option.highlighted {
     background-color: #e9ecef;
 }
+
+/* Delete functionality styles */
+.employee-checkbox:checked {
+    background-color: var(--kenya-red);
+    border-color: var(--kenya-red);
+}
+
+#bulkDeleteControls {
+    border-left: 4px solid var(--kenya-red);
+}
 </style>
+
+<script>
+// Delete functionality
+function deleteEmployee(employeeId, employeeName) {
+    if (confirm(`Are you sure you want to delete employee "${employeeName}"?\n\nNote: If the employee has payroll records, they will be deactivated instead of deleted.`)) {
+        // Create a form to submit the delete request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'index.php?page=employees&action=delete';
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'employee_id';
+        input.value = employeeId;
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+
+    updateBulkDeleteButton();
+}
+
+function updateBulkDeleteButton() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const bulkDeleteControls = document.getElementById('bulkDeleteControls');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (checkboxes.length > 0) {
+        bulkDeleteBtn.style.display = 'inline-block';
+        bulkDeleteControls.style.display = 'block';
+        selectedCount.textContent = `${checkboxes.length} employee${checkboxes.length > 1 ? 's' : ''} selected`;
+    } else {
+        bulkDeleteBtn.style.display = 'none';
+        bulkDeleteControls.style.display = 'none';
+    }
+
+    // Update select all checkbox
+    const allCheckboxes = document.querySelectorAll('.employee-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+}
+
+function toggleBulkDelete() {
+    const bulkDeleteControls = document.getElementById('bulkDeleteControls');
+    bulkDeleteControls.style.display = bulkDeleteControls.style.display === 'none' ? 'block' : 'none';
+}
+
+function confirmBulkDelete() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select employees to delete.');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${checkboxes.length} employee${checkboxes.length > 1 ? 's' : ''}?\n\nNote: Employees with payroll records will be deactivated instead of deleted.`)) {
+        document.getElementById('bulkDeleteForm').submit();
+    }
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    document.getElementById('selectAll').checked = false;
+    updateBulkDeleteButton();
+}
+</script>
