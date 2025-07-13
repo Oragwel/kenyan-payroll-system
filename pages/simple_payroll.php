@@ -67,13 +67,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $processedCount = 0;
                 
                 // Process selected employees
+                $duplicateCount = 0;
                 foreach ($selectedEmployees as $employeeId) {
                     // Get employee data
                     $stmt = $db->prepare("SELECT * FROM employees WHERE id = ? AND company_id = ?");
                     $stmt->execute([$employeeId, $_SESSION['company_id']]);
                     $employee = $stmt->fetch();
-                    
+
                     if ($employee) {
+                        // Check for existing payroll record for this employee in this period
+                        $stmt = $db->prepare("
+                            SELECT COUNT(*) FROM payroll_records
+                            WHERE employee_id = ? AND payroll_period_id = ?
+                        ");
+                        $stmt->execute([$employee['id'], $payrollPeriodId]);
+                        $existingRecord = $stmt->fetchColumn();
+
+                        if ($existingRecord > 0) {
+                            $duplicateCount++;
+                            continue; // Skip this employee - already processed
+                        }
+
                         // Calculate payroll
                         $payrollData = processEmployeePayroll(
                             $employee['id'],
@@ -86,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             0,  // Overtime rate
                             $employee['contract_type'] ?? 'permanent'
                         );
-                        
+
                         // Insert payroll record
                         $stmt = $db->prepare("
                             INSERT INTO payroll_records (
@@ -95,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 total_deductions, net_pay, days_worked, overtime_hours, overtime_amount, company_id
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ");
-                        
+
                         $stmt->execute([
                             $employee['id'], $payrollPeriodId, $payrollData['basic_salary'],
                             $payrollData['gross_pay'], $payrollData['taxable_income'],
@@ -106,13 +120,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $payrollData['overtime_hours'], $payrollData['overtime_amount'],
                             $_SESSION['company_id']
                         ]);
-                        
+
                         $processedCount++;
                     }
                 }
                 
                 $db->commit();
+
+                // Build success message with duplicate info
                 $message = "✅ Payroll processed successfully for $processedCount employees!";
+                if ($duplicateCount > 0) {
+                    $message .= " ($duplicateCount employees skipped - already processed for this period)";
+                }
                 $messageType = 'success';
 
             } catch (Exception $e) {

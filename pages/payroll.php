@@ -90,8 +90,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
             $employees = $stmt->fetchAll();
 
             $processedCount = 0;
+            $duplicateCount = 0;
 
             foreach ($employees as $employee) {
+                // Check for existing payroll record for this employee in this period
+                $stmt = $db->prepare("
+                    SELECT COUNT(*) FROM payroll_records
+                    WHERE employee_id = ? AND payroll_period_id = ?
+                ");
+                $stmt->execute([$employee['id'], $payrollPeriodId]);
+                $existingRecord = $stmt->fetchColumn();
+
+                if ($existingRecord > 0) {
+                    $duplicateCount++;
+                    continue; // Skip this employee - already processed
+                }
+
                 // Calculate payroll for each employee based on contract type
                 $payrollData = processEmployeePayroll(
                     $employee['id'],
@@ -104,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
                     0,  // Overtime rate
                     $employee['contract_type'] // Pass contract type for exemptions
                 );
-                
+
                 // Insert payroll record - try multiple approaches to handle company_id
                 $insertSuccess = false;
                 $lastError = '';
@@ -175,7 +189,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
             
             $db->commit();
             
+            // Build success message with duplicate info
             $message = "Payroll processed successfully for $processedCount employees";
+            if ($duplicateCount > 0) {
+                $message .= " ($duplicateCount employees skipped - already processed for this period)";
+            }
             $messageType = 'success';
             logActivity('payroll_process', "Processed payroll for period: $periodName");
             
