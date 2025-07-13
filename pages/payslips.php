@@ -222,7 +222,7 @@ if ($action === 'view' && $payslipId) {
                 </div>
                 <div class="col-md-4 text-end">
                     <?php if ($action === 'view'): ?>
-                        <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>&download=1"
+                        <a href="payslip_download.php?payslip_id=<?php echo $payslipId; ?>"
                            class="btn btn-light btn-lg">
                             <i class="fas fa-download me-2"></i>Download PDF
                         </a>
@@ -346,7 +346,7 @@ if ($action === 'view' && $payslipId) {
                         </h5>
                         
                         <div class="d-grid gap-2">
-                            <a href="payslip_pdf.php?payslip_id=<?php echo $payslipId; ?>&download=1"
+                            <a href="payslip_download.php?payslip_id=<?php echo $payslipId; ?>"
                                class="btn btn-download">
                                 <i class="fas fa-download me-2"></i>Download PDF
                             </a>
@@ -474,7 +474,7 @@ if ($action === 'view' && $payslipId) {
                                                        target="_blank" class="btn btn-outline-info" title="View PDF">
                                                         <i class="fas fa-external-link-alt"></i>
                                                     </a>
-                                                    <a href="payslip_pdf.php?payslip_id=<?php echo $slip['id']; ?>&download=1"
+                                                    <a href="payslip_download.php?payslip_id=<?php echo $slip['id']; ?>"
                                                        class="btn btn-outline-danger" title="Download PDF">
                                                         <i class="fas fa-download"></i>
                                                     </a>
