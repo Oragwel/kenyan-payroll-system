@@ -465,11 +465,11 @@ function handleBulkImport($file) {
                                                 <div>
                                                     <strong><?php echo htmlspecialchars($emp['first_name'] . ' ' . $emp['last_name']); ?></strong>
                                                     <br>
-                                                    <small class="text-muted"><?php echo htmlspecialchars($emp['email']); ?></small>
+                                                    <small class="text-muted"><?php echo htmlspecialchars($emp['email'] ?? ''); ?></small>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><?php echo htmlspecialchars($emp['id_number']); ?></td>
+                                        <td><?php echo htmlspecialchars($emp['id_number'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($emp['department_name'] ?? 'Not Assigned'); ?></td>
                                         <td><?php echo htmlspecialchars($emp['position_title'] ?? 'Not Assigned'); ?></td>
                                         <td><?php echo formatCurrency($emp['basic_salary']); ?></td>
