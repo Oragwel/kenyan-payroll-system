@@ -135,6 +135,19 @@ $leaveTrends = $stmt->fetchAll();
     border-radius: 0 0 20px 20px;
 }
 
+.hr-welcome-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.text-white-75 {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
 .hr-card {
     background: white;
     border: none;
@@ -226,9 +239,9 @@ $leaveTrends = $stmt->fetchAll();
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
-                        <h5 class="mb-1">Welcome, <?php echo $_SESSION['username']; ?>!</h5>
-                        <small class="opacity-75">HR Manager • <?php echo date('F j, Y'); ?></small>
+                    <div class="hr-welcome-card">
+                        <h5 class="mb-1 text-white">Welcome, <?php echo $_SESSION['username']; ?>!</h5>
+                        <small class="text-white-75">HR Manager • <?php echo date('F j, Y'); ?></small>
                     </div>
                 </div>
             </div>

@@ -127,6 +127,19 @@ if (isset($_SESSION['employee_id'])) {
     border-radius: 0 0 20px 20px;
 }
 
+.employee-welcome-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.text-white-75 {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
 .employee-card {
     background: white;
     border: none;
@@ -176,9 +189,9 @@ if (isset($_SESSION['employee_id'])) {
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
-                        <h6 class="mb-1"><?php echo htmlspecialchars($employee['department_name'] ?? 'N/A'); ?></h6>
-                        <small class="opacity-75"><?php echo htmlspecialchars($employee['job_title'] ?? 'Employee'); ?></small>
+                    <div class="employee-welcome-card">
+                        <h6 class="mb-1 text-white"><?php echo htmlspecialchars($employee['department_name'] ?? 'N/A'); ?></h6>
+                        <small class="text-white-75"><?php echo htmlspecialchars($employee['job_title'] ?? 'Employee'); ?></small>
                     </div>
                 </div>
             </div>

@@ -436,6 +436,23 @@ body {
     z-index: 2;
 }
 
+.dashboard-welcome-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.text-white-75 {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.text-white-60 {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
 .modern-card {
     background: white;
     border: none;
@@ -711,11 +728,11 @@ body {
                         </small>
                     </div>
                     <div class="col-lg-4 text-end">
-                        <div class="bg-white bg-opacity-15 rounded-3 p-4 backdrop-blur">
-                            <h4 class="mb-2">Welcome back!</h4>
+                        <div class="dashboard-welcome-card">
+                            <h4 class="mb-2 text-white">Welcome back!</h4>
                             <h5 class="mb-1 text-warning"><?php echo $_SESSION['username']; ?></h5>
-                            <p class="mb-1 opacity-75"><?php echo ucfirst($_SESSION['user_role']); ?></p>
-                            <small class="opacity-60"><?php echo date('l, F j, Y'); ?></small>
+                            <p class="mb-1 text-white-75"><?php echo ucfirst($_SESSION['user_role']); ?></p>
+                            <small class="text-white-60"><?php echo date('l, F j, Y'); ?></small>
                         </div>
                     </div>
                 </div>
