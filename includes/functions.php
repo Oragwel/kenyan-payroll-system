@@ -7,6 +7,8 @@
  * Calculate PAYE tax based on Kenyan tax brackets
  */
 function calculatePAYE($taxableIncome) {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $taxableIncome = $taxableIncome ?? 0;
     $tax = 0;
     $rates = PAYE_RATES;
     
@@ -29,6 +31,9 @@ function calculatePAYE($taxableIncome) {
  * Calculate NSSF contribution (exempted for contract employees)
  */
 function calculateNSSF($grossPay, $contractType = 'permanent') {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $grossPay = $grossPay ?? 0;
+
     // Contract employees are exempted from NSSF
     if ($contractType === 'contract') {
         return 0;
@@ -42,6 +47,8 @@ function calculateNSSF($grossPay, $contractType = 'permanent') {
  * Calculate SHIF contribution (2.75% of gross pay with minimum KES 300)
  */
 function calculateSHIF($grossPay) {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $grossPay = $grossPay ?? 0;
     $calculated = $grossPay * SHIF_RATE;
     return ceil(max($calculated, SHIF_MINIMUM));
 }
@@ -50,6 +57,9 @@ function calculateSHIF($grossPay) {
  * Calculate Housing Levy (exempted for contract employees)
  */
 function calculateHousingLevy($grossPay, $contractType = 'permanent') {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $grossPay = $grossPay ?? 0;
+
     // Contract employees are exempted from Housing Levy
     if ($contractType === 'contract') {
         return 0;
@@ -62,6 +72,12 @@ function calculateHousingLevy($grossPay, $contractType = 'permanent') {
  * Calculate total taxable income
  */
 function calculateTaxableIncome($grossPay, $nssfContribution, $pensionContribution = 0, $insurancePremium = 0) {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $grossPay = $grossPay ?? 0;
+    $nssfContribution = $nssfContribution ?? 0;
+    $pensionContribution = $pensionContribution ?? 0;
+    $insurancePremium = $insurancePremium ?? 0;
+
     // Deduct NSSF, pension contributions, and insurance premiums from gross pay
     $pensionRelief = min($pensionContribution, PENSION_RELIEF_LIMIT);
     $insuranceRelief = min($insurancePremium, INSURANCE_RELIEF_LIMIT);
@@ -122,6 +138,8 @@ function processEmployeePayroll($employeeId, $payrollPeriodId, $basicSalary, $al
  * Format currency for display
  */
 function formatCurrency($amount) {
+    // Handle null values to prevent PHP 8.1+ deprecation warnings
+    $amount = $amount ?? 0;
     return 'KES ' . number_format($amount, 2);
 }
 
