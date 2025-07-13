@@ -61,21 +61,19 @@ if ($_SESSION['user_role'] === 'admin') {
         if ($stmt->rowCount() > 0) {
             $stmt = $db->prepare("
                 SELECT
-                    SUM(latest_records.net_pay) as monthly_payroll,
-                    SUM(latest_records.gross_pay) as gross_payroll,
-                    SUM(latest_records.paye_tax) as total_paye,
-                    SUM(latest_records.nssf_deduction) as total_nssf,
-                    SUM(latest_records.nhif_deduction) as total_shif,
-                    SUM(latest_records.housing_levy) as total_housing_levy,
-                    COUNT(*) as payroll_records
-                FROM (
-                    SELECT pr.*,
-                           ROW_NUMBER() OVER (PARTITION BY pr.employee_id, pr.payroll_period_id ORDER BY pr.id DESC) as rn
-                    FROM payroll_records pr
-                    JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                    WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ?
-                ) latest_records
-                WHERE latest_records.rn = 1
+                    SUM(pr.net_pay) as monthly_payroll,
+                    SUM(pr.gross_pay) as gross_payroll,
+                    SUM(pr.paye_tax) as total_paye,
+                    SUM(pr.nssf_deduction) as total_nssf,
+                    SUM(pr.nhif_deduction) as total_shif,
+                    SUM(pr.housing_levy) as total_housing_levy,
+                    COUNT(DISTINCT CONCAT(pr.employee_id, '-', pr.payroll_period_id)) as payroll_records
+                FROM payroll_records pr
+                JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                LEFT JOIN payroll_records pr2 ON pr.employee_id = pr2.employee_id
+                                              AND pr.payroll_period_id = pr2.payroll_period_id
+                                              AND pr.id < pr2.id
+                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ? AND pr2.id IS NULL
             ");
             $stmt->execute([$_SESSION['company_id'], $currentMonth]);
             $payrollStats = $stmt->fetch();
