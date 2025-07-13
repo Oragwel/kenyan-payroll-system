@@ -12,6 +12,11 @@ $action = $_GET['action'] ?? 'list';
 $message = '';
 $messageType = '';
 
+// Helper function to convert empty strings to NULL
+function nullIfEmpty($value) {
+    return isset($value) && trim($value) !== '' ? trim($value) : null;
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'bulk_import') {
@@ -26,28 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'add' || $action === 'edit') {
         $employeeId    = $_POST['employee_id'] ?? null;
-$firstName     = sanitizeInput($_POST['first_name']);
+        $firstName     = sanitizeInput($_POST['first_name']);
+        $middleName    = nullIfEmpty(sanitizeInput($_POST['middle_name']));    // Optional
+        $lastName      = sanitizeInput($_POST['last_name']);
+        $idNumber      = nullIfEmpty(sanitizeInput($_POST['id_number']));      // Optional
+        $email         = nullIfEmpty($_POST['email']);           // Optional
+        $phone         = nullIfEmpty($_POST['phone']);           // Optional
+        $hireDate      = nullIfEmpty($_POST['hire_date']);       // Optional (must be date or NULL)
+        $basicSalary   = nullIfEmpty($_POST['basic_salary']);    // Optional
+        $departmentId  = nullIfEmpty($_POST['department_id']);   // Optional
+        $positionId    = nullIfEmpty($_POST['position_id']);     // Optional
+        $contractType  = nullIfEmpty($_POST['contract_type']);   // Optional
+        $bankCode      = nullIfEmpty($_POST['bank_code']);       // Optional
+        $bankName      = nullIfEmpty($_POST['bank_name']);       // Optional
+        $bankBranch    = nullIfEmpty($_POST['bank_branch']);     // Optional
+        $accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
 
-function nullIfEmpty($value) {
-    return isset($value) && trim($value) !== '' ? trim($value) : null;
-}
-
-$middleName    = nullIfEmpty(sanitizeInput($_POST['middle_name']));    // Optional
-$lastName      = sanitizeInput($_POST['last_name']);
-$idNumber      = sanitizeInput($_POST['id_number']);
-$email         = nullIfEmpty($_POST['email']);           // Optional
-$phone         = nullIfEmpty($_POST['phone']);           // Optional
-$hireDate      = nullIfEmpty($_POST['hire_date']);       // Optional (must be date or NULL)
-$basicSalary   = nullIfEmpty($_POST['basic_salary']);    // Optional
-$departmentId  = nullIfEmpty($_POST['department_id']);   // Optional
-$positionId    = nullIfEmpty($_POST['position_id']);     // Optional
-$contractType  = nullIfEmpty($_POST['contract_type']);   // Optional
-$bankCode      = nullIfEmpty($_POST['bank_code']);       // Optional
-$bankName      = nullIfEmpty($_POST['bank_name']);       // Optional
-$bankBranch    = nullIfEmpty($_POST['bank_branch']);     // Optional
-$accountNumber = nullIfEmpty($_POST['account_number']);  // Optional
-
-        
         if (empty($firstName) || empty($lastName) || empty($basicSalary)) {
             $message = 'Please fill in all required fields (First Name, Last Name, Basic Salary)';
             $messageType = 'danger';
