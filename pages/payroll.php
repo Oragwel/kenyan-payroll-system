@@ -209,15 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'process') {
 if ($action === 'list') {
     $stmt = $db->prepare("
         SELECT pp.*, u.username as created_by_name,
-               COUNT(DISTINCT pr.employee_id) as employee_count,
+               COUNT(pr.id) as employee_count,
                SUM(pr.net_pay) as total_net_pay
         FROM payroll_periods pp
         LEFT JOIN users u ON pp.created_by = u.id
         LEFT JOIN payroll_records pr ON pp.id = pr.payroll_period_id
-        LEFT JOIN payroll_records pr2 ON pr.employee_id = pr2.employee_id
-                                      AND pr.payroll_period_id = pr2.payroll_period_id
-                                      AND pr.id < pr2.id
-        WHERE pp.company_id = ? AND pr2.id IS NULL
+        WHERE pp.company_id = ?
         GROUP BY pp.id
         ORDER BY pp.created_at DESC
     ");

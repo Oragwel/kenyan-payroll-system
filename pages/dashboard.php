@@ -67,13 +67,10 @@ if ($_SESSION['user_role'] === 'admin') {
                     SUM(pr.nssf_deduction) as total_nssf,
                     SUM(pr.nhif_deduction) as total_shif,
                     SUM(pr.housing_levy) as total_housing_levy,
-                    COUNT(DISTINCT CONCAT(pr.employee_id, '-', pr.payroll_period_id)) as payroll_records
+                    COUNT(*) as payroll_records
                 FROM payroll_records pr
                 JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                LEFT JOIN payroll_records pr2 ON pr.employee_id = pr2.employee_id
-                                              AND pr.payroll_period_id = pr2.payroll_period_id
-                                              AND pr.id < pr2.id
-                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ? AND pr2.id IS NULL
+                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ?
             ");
             $stmt->execute([$_SESSION['company_id'], $currentMonth]);
             $payrollStats = $stmt->fetch();
