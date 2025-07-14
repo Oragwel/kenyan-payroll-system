@@ -265,7 +265,7 @@ if (!$user) {
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
+                    <div class="rounded p-3 text-white" style="background-color: var(--kenya-dark-green);">
                         <h5 class="mb-1"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h5>
                         <small class="opacity-75"><?php echo ucfirst($user['role']); ?></small>
                     </div>
