@@ -20,6 +20,15 @@ if (!isset($_SESSION['user_id'])) {
     --kenya-dark-green: #004d2e;
 }
 
+.user-summary-card {
+    background: rgba(0, 77, 46, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .help-hero {
     background: linear-gradient(135deg, var(--kenya-green) 0%, var(--kenya-dark-green) 100%);
     color: white;
@@ -85,12 +94,12 @@ if (!isset($_SESSION['user_id'])) {
                         Get help with the Kenyan Payroll System
                     </p>
                 </div>
-                <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
-                        <h6 class="mb-1">Need Assistance?</h6>
-                        <small class="opacity-75">We're here to help!</small>
-                    </div>
+            <div class="col-md-4 text-end">
+                <div class="user-summary-card">
+                    <h6 class="mb-1 text-white">Need Assistance?</h6>
+                    <small class="text-white-75">We're here to help!</small>
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -214,7 +223,7 @@ if (!isset($_SESSION['user_id'])) {
                 </div>
                 
                 <hr>
-                
+
                 <h6><i class="fas fa-book text-success me-2"></i>Documentation</h6>
                 <ul class="list-unstyled">
                     <li><a href="#" class="text-decoration-none">User Manual</a></li>
