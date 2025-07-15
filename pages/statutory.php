@@ -346,7 +346,7 @@ $company = $stmt->fetch();
         }
 
         .statutory-header {
-            background: linear-gradient(135deg, var(--kenya-black) 0%, #333333 100%);
+            background: linear-gradient(135deg, var(--kenya-green) 0%, var(--kenya-dark-green) 100%);
             color: white;
             padding: 2rem;
             border-radius: 15px;
@@ -397,6 +397,15 @@ $company = $stmt->fetch();
             background: #fff5f5;
         }
 
+        .statutory-summary-card {
+            background: rgba(0, 77, 46, 0.2); /* semi-transparent kenya dark green */
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
         .badge-paye { background: var(--kenya-red); }
         .badge-nssf { background: var(--kenya-green); }
         .badge-shif { background: var(--kenya-gold); color: var(--kenya-black); }
@@ -432,7 +441,7 @@ $company = $stmt->fetch();
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
+                    <div class="statutory-summary-card">
                         <h5 class="mb-1"><?php echo htmlspecialchars($company['name'] ?? 'Company'); ?></h5>
                         <small class="opacity-75">KRA PIN: <?php echo htmlspecialchars($company['kra_pin'] ?? 'Not Set'); ?></small>
                     </div>
@@ -454,7 +463,7 @@ $company = $stmt->fetch();
             <div class="row">
                 <!-- Report Generation -->
                 <div class="col-lg-8">
-                    <div class="statutory-card">
+                    <div class="statutory-summery-card">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
                                 <i class="fas fa-file-alt me-2"></i>

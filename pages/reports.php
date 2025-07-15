@@ -267,6 +267,15 @@ function getReportSummary($startDate, $endDate) {
     transition: all 0.3s ease;
 }
 
+.reports-summary-card {
+            background: rgba(0, 77, 46, 0.2); /* semi-transparent kenya dark green */
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+}
+
 .btn-generate:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(206,17,38,0.3);
@@ -289,7 +298,7 @@ function getReportSummary($startDate, $endDate) {
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
+                    <div class="reports-summary-card">
                         <h5 class="mb-1">Report Center</h5>
                         <small class="opacity-75">Generate professional reports</small>
                     </div>

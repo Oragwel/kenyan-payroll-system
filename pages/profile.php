@@ -146,6 +146,16 @@ if (!$user) {
     --kenya-dark-green: #004d2e;
 }
 
+
+.user-summary-card {
+    background: rgba(0, 77, 46, 0.2); /* semi-transparent kenya dark green */
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .profile-hero {
     background: linear-gradient(135deg, var(--kenya-green) 0%, var(--kenya-dark-green) 100%);
     color: white;
@@ -264,12 +274,17 @@ if (!$user) {
                         👤 Manage your personal information and account settings
                     </p>
                 </div>
-                <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
-                        <h5 class="mb-1"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h5>
-                        <small class="opacity-75"><?php echo ucfirst($user['role']); ?></small>
+                    <div class="col-md-4 text-end">
+                        <div class="user-summary-card">
+                            <h5 class="mb-1 text-white">
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                            </h5>
+                            <small class="text-white-75">
+                                <?php echo ucfirst($user['role']); ?>
+                            </small>
+                        </div>
                     </div>
-                </div>
+
             </div>
         </div>
     </div>
