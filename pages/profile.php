@@ -146,8 +146,7 @@ if (!$user) {
     --kenya-dark-green: #004d2e;
 }
 
-
-.user-summary-card {
+  .user-summary-card {
     background: rgba(0, 77, 46, 0.2); /* semi-transparent kenya dark green */
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
@@ -282,10 +281,8 @@ if (!$user) {
                             <small class="text-white-75">
                                 <?php echo ucfirst($user['role']); ?>
                             </small>
-                        </div>
-                    </div>
-
-            </div>
+                     </div>
+          </div>
         </div>
     </div>
 
