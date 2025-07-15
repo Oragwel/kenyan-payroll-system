@@ -245,6 +245,15 @@ $currentSettings = getCurrentSettings();
     --kenya-dark-green: #004d2e;
 }
 
+.setting-summary-card {
+    background: rgba(0, 77, 46, 0.2); /* semi-transparent kenya dark green */
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .settings-hero {
     background: linear-gradient(135deg, var(--kenya-green) 0%, var(--kenya-dark-green) 100%);
     color: white;
@@ -365,10 +374,11 @@ $currentSettings = getCurrentSettings();
                         ⚙️ Configure system preferences, payroll rates, and security settings
                     </p>
                 </div>
-                <div class="col-md-4 text-end">
-                    <div class="bg-white bg-opacity-15 rounded p-3">
+                    <div class="col-md-4 text-end">
+                        <div class="setting-summary-card">
                         <h5 class="mb-1">Admin Control</h5>
                         <small class="opacity-75">System configuration</small>
+                        </div>
                     </div>
                 </div>
             </div>
