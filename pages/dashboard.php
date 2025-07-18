@@ -4,6 +4,14 @@
  * ADMIN ONLY ACCESS - Comprehensive payroll management dashboard
  */
 
+// Get database type for database-agnostic queries
+$dbType = 'mysql'; // default
+if (isset($database) && method_exists($database, 'getDatabaseType')) {
+    $dbType = $database->getDatabaseType();
+}
+
+
+
 // SECURITY: Check if user is admin - redirect if not
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     // Log unauthorized access attempt
@@ -71,7 +79,9 @@ if ($_SESSION['user_role'] === 'admin') {
                 FROM payroll_records pr
                 JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
                 JOIN employees e ON pr.employee_id = e.id
-                WHERE pp.company_id = ? AND DATE_FORMAT(pp.start_date, '%Y-%m') = ? AND e.employment_status = 'active'
+                WHERE pp.company_id = ? AND " .
+                ($dbType === 'sqlite' ? "strftime('%Y-%m', pp.start_date)" : "DATE_FORMAT(pp.start_date, '%Y-%m')") .
+                " = ? AND e.employment_status = 'active'
             ");
             $stmt->execute([$_SESSION['company_id'], $currentMonth]);
             $payrollStats = $stmt->fetch();
@@ -189,30 +199,68 @@ if ($_SESSION['user_role'] === 'admin') {
 
     // Monthly Payroll Trend (Last 12 months) - with error handling
     try {
-        // Check if payroll tables exist
-        $stmt = $db->query("SHOW TABLES LIKE 'payroll_periods'");
-        if ($stmt->rowCount() > 0) {
-            $stmt = $db->prepare("
-                SELECT
-                    DATE_FORMAT(pp.start_date, '%Y-%m') as month,
-                    DATE_FORMAT(pp.start_date, '%M %Y') as month_name,
-                    DATE_FORMAT(pp.start_date, '%b') as month_short,
-                    SUM(pr.net_pay) as total_net_pay,
-                    SUM(pr.gross_pay) as total_gross_pay,
-                    SUM(pr.paye_tax) as total_paye,
-                    SUM(pr.nssf_deduction) as total_nssf,
-                    SUM(pr.nhif_deduction) as total_shif,
-                    SUM(pr.housing_levy) as total_housing,
-                    COUNT(pr.id) as employee_count
-                FROM payroll_periods pp
-                JOIN payroll_records pr ON pp.id = pr.payroll_period_id
-                JOIN employees e ON pr.employee_id = e.id
-                WHERE pp.company_id = ? AND e.employment_status = 'active'
-                AND pp.start_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m'), DATE_FORMAT(pp.start_date, '%M %Y'), DATE_FORMAT(pp.start_date, '%b')
-                ORDER BY month ASC
-            ");
-            $stmt->execute([$_SESSION['company_id']]);
+        // Check if payroll tables exist (database-agnostic)
+        $tableExists = false;
+        try {
+            if ($dbType === 'sqlite') {
+                $stmt = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='payroll_periods'");
+                $tableExists = $stmt->rowCount() > 0;
+            } else {
+                $stmt = $db->query("SHOW TABLES LIKE 'payroll_periods'");
+                $tableExists = $stmt->rowCount() > 0;
+            }
+        } catch (Exception $e) {
+            $tableExists = false;
+        }
+
+        if ($tableExists) {
+            $twelveMonthsAgo = date('Y-m-d H:i:s', strtotime('-12 months'));
+
+            if ($dbType === 'sqlite') {
+                $stmt = $db->prepare("
+                    SELECT
+                        strftime('%Y-%m', pp.start_date) as month,
+                        strftime('%Y-%m', pp.start_date) as month_name,
+                        strftime('%m', pp.start_date) as month_short,
+                        SUM(pr.net_pay) as total_net_pay,
+                        SUM(pr.gross_pay) as total_gross_pay,
+                        SUM(pr.paye_tax) as total_paye,
+                        SUM(pr.nssf_deduction) as total_nssf,
+                        SUM(pr.nhif_deduction) as total_shif,
+                        SUM(pr.housing_levy) as total_housing,
+                        COUNT(pr.id) as employee_count
+                    FROM payroll_periods pp
+                    JOIN payroll_records pr ON pp.id = pr.payroll_period_id
+                    JOIN employees e ON pr.employee_id = e.id
+                    WHERE pp.company_id = ? AND e.employment_status = 'active'
+                    AND pp.start_date >= ?
+                    GROUP BY strftime('%Y-%m', pp.start_date)
+                    ORDER BY month ASC
+                ");
+                $stmt->execute([$_SESSION['company_id'], $twelveMonthsAgo]);
+            } else {
+                $stmt = $db->prepare("
+                    SELECT
+                        DATE_FORMAT(pp.start_date, '%Y-%m') as month,
+                        DATE_FORMAT(pp.start_date, '%M %Y') as month_name,
+                        DATE_FORMAT(pp.start_date, '%b') as month_short,
+                        SUM(pr.net_pay) as total_net_pay,
+                        SUM(pr.gross_pay) as total_gross_pay,
+                        SUM(pr.paye_tax) as total_paye,
+                        SUM(pr.nssf_deduction) as total_nssf,
+                        SUM(pr.nhif_deduction) as total_shif,
+                        SUM(pr.housing_levy) as total_housing,
+                        COUNT(pr.id) as employee_count
+                    FROM payroll_periods pp
+                    JOIN payroll_records pr ON pp.id = pr.payroll_period_id
+                    JOIN employees e ON pr.employee_id = e.id
+                    WHERE pp.company_id = ? AND e.employment_status = 'active'
+                    AND pp.start_date >= ?
+                    GROUP BY DATE_FORMAT(pp.start_date, '%Y-%m'), DATE_FORMAT(pp.start_date, '%M %Y'), DATE_FORMAT(pp.start_date, '%b')
+                    ORDER BY month ASC
+                ");
+                $stmt->execute([$_SESSION['company_id'], $twelveMonthsAgo]);
+            }
             $monthlyTrends = $stmt->fetchAll();
         } else {
             $monthlyTrends = [];
@@ -223,18 +271,37 @@ if ($_SESSION['user_role'] === 'admin') {
     }
 
     // Employee Growth Analytics (only active employees)
-    $stmt = $db->prepare("
-        SELECT
-            DATE_FORMAT(created_at, '%Y-%m') as month,
-            DATE_FORMAT(created_at, '%M %Y') as month_name,
-            COUNT(*) as new_employees
-        FROM employees
-        WHERE company_id = ? AND employment_status = 'active'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
-        ORDER BY month ASC
-    ");
-    $stmt->execute([$_SESSION['company_id']]);
+    // Use PHP to calculate 12 months ago for better database compatibility
+    $twelveMonthsAgo = date('Y-m-d H:i:s', strtotime('-12 months'));
+
+    if ($dbType === 'sqlite') {
+        $stmt = $db->prepare("
+            SELECT
+                strftime('%Y-%m', created_at) as month,
+                strftime('%Y-%m', created_at) as month_name,
+                COUNT(*) as new_employees
+            FROM employees
+            WHERE company_id = ? AND employment_status = 'active'
+            AND created_at >= ?
+            GROUP BY strftime('%Y-%m', created_at)
+            ORDER BY month ASC
+        ");
+        $stmt->execute([$_SESSION['company_id'], $twelveMonthsAgo]);
+    } else {
+        // MySQL/PostgreSQL version
+        $stmt = $db->prepare("
+            SELECT
+                DATE_FORMAT(created_at, '%Y-%m') as month,
+                DATE_FORMAT(created_at, '%M %Y') as month_name,
+                COUNT(*) as new_employees
+            FROM employees
+            WHERE company_id = ? AND employment_status = 'active'
+            AND created_at >= ?
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%M %Y')
+            ORDER BY month ASC
+        ");
+        $stmt->execute([$_SESSION['company_id'], $twelveMonthsAgo]);
+    }
     $employeeGrowth = $stmt->fetchAll();
 
     // Salary Distribution Analytics

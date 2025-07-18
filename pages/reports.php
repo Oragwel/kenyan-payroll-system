@@ -45,11 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_report'])) {
  */
 function generatePayrollReport($startDate, $endDate) {
     global $db;
-    
+
+    $employeeNameConcat = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
     $stmt = $db->prepare("
-        SELECT 
+        SELECT
             e.employee_number,
-            CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+            $employeeNameConcat as employee_name,
             e.id_number,
             d.name as department,
             pp.period_name,
@@ -79,15 +80,36 @@ function generatePayrollReport($startDate, $endDate) {
  */
 function generateStatutoryReport($startDate, $endDate) {
     global $db;
-    
+
+    // Check if statutory columns exist
+    $hasKraPin = DatabaseUtils::tableExists($db, 'employees') &&
+                 $db->query("PRAGMA table_info(employees)")->fetchAll();
+
+    $employeeNameConcat2 = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
+
+    // Build query with conditional columns
+    $kraPin = "'' as kra_pin";
+    $nssfNumber = "'' as nssf_number";
+    $nhifNumber = "'' as nhif_number";
+
+    // Check if columns exist (simplified approach)
+    try {
+        $db->query("SELECT kra_pin FROM employees LIMIT 1");
+        $kraPin = "e.kra_pin";
+        $nssfNumber = "e.nssf_number";
+        $nhifNumber = "e.nhif_number";
+    } catch (Exception $e) {
+        // Columns don't exist, use defaults
+    }
+
     $stmt = $db->prepare("
-        SELECT 
+        SELECT
             e.employee_number,
-            CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+            $employeeNameConcat2 as employee_name,
             e.id_number,
-            e.kra_pin,
-            e.nssf_number,
-            e.nhif_number,
+            $kraPin,
+            $nssfNumber,
+            $nhifNumber,
             pp.period_name,
             pr.gross_pay,
             pr.taxable_income,
@@ -112,11 +134,12 @@ function generateStatutoryReport($startDate, $endDate) {
  */
 function generateEmployeeReport($startDate, $endDate) {
     global $db;
-    
+
+    $employeeNameConcat3 = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
     $stmt = $db->prepare("
-        SELECT 
+        SELECT
             e.employee_number,
-            CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+            $employeeNameConcat3 as employee_name,
             e.email,
             e.phone,
             e.hire_date,
