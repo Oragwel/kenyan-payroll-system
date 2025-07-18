@@ -25,14 +25,21 @@ class SchemaManager {
             'job_positions' => $this->getJobPositionsTableSQL(),
             'employees' => $this->getEmployeesTableSQL(),
             'allowances' => $this->getAllowancesTableSQL(),
+            'allowance_types' => $this->getAllowanceTypesTableSQL(),
             'deductions' => $this->getDeductionsTableSQL(),
+            'deduction_types' => $this->getDeductionTypesTableSQL(),
             'leave_types' => $this->getLeaveTypesTableSQL(),
             'leave_applications' => $this->getLeaveApplicationsTableSQL(),
             'attendance' => $this->getAttendanceTableSQL(),
             'payroll_periods' => $this->getPayrollPeriodsTableSQL(),
             'payroll_records' => $this->getPayrollRecordsTableSQL(),
             'employee_allowances' => $this->getEmployeeAllowancesTableSQL(),
-            'employee_deductions' => $this->getEmployeeDeductionsTableSQL()
+            'employee_deductions' => $this->getEmployeeDeductionsTableSQL(),
+            'company_settings' => $this->getCompanySettingsTableSQL(),
+            'system_settings' => $this->getSystemSettingsTableSQL(),
+            'statutory_reports' => $this->getStatutoryReportsTableSQL(),
+            'login_attempts' => $this->getLoginAttemptsTableSQL(),
+            'security_logs' => $this->getSecurityLogsTableSQL()
         ];
         
         $conn = $this->dbManager->getConnection();
@@ -205,6 +212,8 @@ class SchemaManager {
             title " . $this->getDataType('string', 100) . " NOT NULL,
             description " . $this->getDataType('text') . ",
             department_id " . $this->getDataType('integer') . ",
+            min_salary " . $this->getDataType('decimal') . " DEFAULT 0,
+            max_salary " . $this->getDataType('decimal') . " DEFAULT 0,
             created_at " . $this->getDataType('timestamp') . ",
             " . $this->getForeignKey('company_id', 'companies') . ",
             " . $this->getForeignKey('department_id', 'departments') . "
@@ -233,6 +242,9 @@ class SchemaManager {
             contract_type " . $this->getDataType('string', 20) . " DEFAULT 'permanent',
             employment_status " . $this->getDataType('string', 20) . " DEFAULT 'active',
             basic_salary " . $this->getDataType('decimal') . " DEFAULT 0,
+            kra_pin " . $this->getDataType('string', 20) . ",
+            nssf_number " . $this->getDataType('string', 20) . ",
+            nhif_number " . $this->getDataType('string', 20) . ",
             bank_name " . $this->getDataType('string', 100) . ",
             bank_account " . $this->getDataType('string', 50) . ",
             bank_code " . $this->getDataType('string', 20) . ",
@@ -288,7 +300,7 @@ class SchemaManager {
             company_id " . $this->getDataType('integer') . " NOT NULL,
             name " . $this->getDataType('string', 100) . " NOT NULL,
             description " . $this->getDataType('text') . ",
-            days_allowed " . $this->getDataType('integer') . " DEFAULT 0,
+            days_per_year " . $this->getDataType('integer') . " DEFAULT 0,
             is_paid " . $this->getDataType('boolean') . " DEFAULT 1,
             carry_forward " . $this->getDataType('boolean') . " DEFAULT 0,
             max_carry_forward " . $this->getDataType('integer') . " DEFAULT 0,
@@ -492,6 +504,125 @@ class SchemaManager {
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Allowance types table SQL
+     */
+    private function getAllowanceTypesTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS allowance_types (
+            id " . $this->getDataType('id') . ",
+            company_id " . $this->getDataType('integer') . " NOT NULL,
+            name " . $this->getDataType('varchar') . "(100) NOT NULL,
+            description " . $this->getDataType('text') . ",
+            is_taxable " . $this->getDataType('boolean') . " DEFAULT 1,
+            is_pensionable " . $this->getDataType('boolean') . " DEFAULT 1,
+            created_at " . $this->getDataType('timestamp') . ",
+            " . $this->getForeignKey('company_id', 'companies') . "
+        )";
+    }
+
+    /**
+     * Deduction types table SQL
+     */
+    private function getDeductionTypesTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS deduction_types (
+            id " . $this->getDataType('id') . ",
+            company_id " . $this->getDataType('integer') . " NOT NULL,
+            name " . $this->getDataType('varchar') . "(100) NOT NULL,
+            description " . $this->getDataType('text') . ",
+            is_statutory " . $this->getDataType('boolean') . " DEFAULT 0,
+            is_pre_tax " . $this->getDataType('boolean') . " DEFAULT 0,
+            created_at " . $this->getDataType('timestamp') . ",
+            " . $this->getForeignKey('company_id', 'companies') . "
+        )";
+    }
+
+    /**
+     * Company settings table SQL
+     */
+    private function getCompanySettingsTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS company_settings (
+            id " . $this->getDataType('id') . ",
+            company_id " . $this->getDataType('integer') . " NOT NULL,
+            setting_key " . $this->getDataType('varchar') . "(100) NOT NULL,
+            setting_value " . $this->getDataType('text') . ",
+            setting_category " . $this->getDataType('varchar') . "(50) DEFAULT 'general',
+            description " . $this->getDataType('text') . ",
+            created_at " . $this->getDataType('timestamp') . ",
+            updated_at " . $this->getDataType('timestamp') . ",
+            " . $this->getForeignKey('company_id', 'companies') . "
+        )";
+    }
+
+    /**
+     * System settings table SQL
+     */
+    private function getSystemSettingsTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS system_settings (
+            id " . $this->getDataType('id') . ",
+            company_id " . $this->getDataType('integer') . " NOT NULL,
+            setting_key " . $this->getDataType('varchar') . "(100) NOT NULL,
+            setting_value " . $this->getDataType('text') . ",
+            setting_category " . $this->getDataType('varchar') . "(50) DEFAULT 'general',
+            description " . $this->getDataType('text') . ",
+            is_public " . $this->getDataType('boolean') . " DEFAULT 0,
+            created_at " . $this->getDataType('timestamp') . ",
+            updated_at " . $this->getDataType('timestamp') . ",
+            " . $this->getForeignKey('company_id', 'companies') . ",
+            UNIQUE(company_id, setting_key)
+        )";
+    }
+
+    /**
+     * Statutory reports table SQL
+     */
+    private function getStatutoryReportsTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS statutory_reports (
+            id " . $this->getDataType('id') . ",
+            company_id " . $this->getDataType('integer') . " NOT NULL,
+            report_type " . $this->getDataType('varchar') . "(50) NOT NULL,
+            report_period " . $this->getDataType('varchar') . "(20) NOT NULL,
+            start_date " . $this->getDataType('date') . " NOT NULL,
+            end_date " . $this->getDataType('date') . " NOT NULL,
+            file_path " . $this->getDataType('varchar') . "(255),
+            file_name " . $this->getDataType('varchar') . "(255),
+            status " . $this->getDataType('varchar') . "(20) DEFAULT 'generated',
+            generated_by " . $this->getDataType('integer') . ",
+            generated_at " . $this->getDataType('timestamp') . ",
+            " . $this->getForeignKey('company_id', 'companies') . ",
+            " . $this->getForeignKey('generated_by', 'users') . "
+        )";
+    }
+
+    /**
+     * Login attempts table SQL
+     */
+    private function getLoginAttemptsTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS login_attempts (
+            id " . $this->getDataType('id') . ",
+            ip_address " . $this->getDataType('varchar') . "(45) NOT NULL,
+            username " . $this->getDataType('varchar') . "(100),
+            success " . $this->getDataType('boolean') . " DEFAULT 0,
+            user_agent " . $this->getDataType('text') . ",
+            attempt_time " . $this->getDataType('timestamp') . "
+        )";
+    }
+
+    /**
+     * Security logs table SQL
+     */
+    private function getSecurityLogsTableSQL() {
+        return "CREATE TABLE IF NOT EXISTS security_logs (
+            id " . $this->getDataType('id') . ",
+            user_id " . $this->getDataType('integer') . ",
+            event_type " . $this->getDataType('varchar') . "(100) NOT NULL,
+            description " . $this->getDataType('text') . ",
+            ip_address " . $this->getDataType('varchar') . "(45),
+            user_agent " . $this->getDataType('text') . ",
+            severity " . $this->getDataType('varchar') . "(20) DEFAULT 'medium',
+            created_at " . $this->getDataType('timestamp') . "
+        )";
     }
 }
 ?>
