@@ -56,13 +56,46 @@ function updateGeneralSettings($data) {
             'date_format' => $data['date_format'] ?? 'd/m/Y'
         ];
 
+        // Ensure system_settings table exists
+        if (!DatabaseUtils::tableExists($db, 'system_settings')) {
+            $createTableSQL = "CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id INTEGER NOT NULL,
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT,
+                setting_category VARCHAR(50) DEFAULT 'general',
+                description TEXT,
+                is_public BOOLEAN DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(company_id, setting_key)
+            )";
+            $db->exec($createTableSQL);
+        }
+
         foreach ($settings as $key => $value) {
-            $stmt = $db->prepare("
-                INSERT INTO system_settings (setting_key, setting_value, company_id)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
-            ");
-            $stmt->execute([$key, $value, $_SESSION['company_id']]);
+            // Database-agnostic UPSERT - try SQLite syntax first, fallback to manual approach
+            try {
+                $stmt = $db->prepare("
+                    INSERT OR REPLACE INTO system_settings (setting_key, setting_value, company_id)
+                    VALUES (?, ?, ?)
+                ");
+                $stmt->execute([$key, $value, $_SESSION['company_id']]);
+            } catch (Exception $e) {
+                // Fallback: Check if exists, then update or insert
+                $checkStmt = $db->prepare("SELECT id FROM system_settings WHERE setting_key = ? AND company_id = ?");
+                $checkStmt->execute([$key, $_SESSION['company_id']]);
+
+                if ($checkStmt->rowCount() > 0) {
+                    // Update existing
+                    $updateStmt = $db->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = ? AND company_id = ?");
+                    $updateStmt->execute([$value, $key, $_SESSION['company_id']]);
+                } else {
+                    // Insert new
+                    $insertStmt = $db->prepare("INSERT INTO system_settings (setting_key, setting_value, company_id) VALUES (?, ?, ?)");
+                    $insertStmt->execute([$key, $value, $_SESSION['company_id']]);
+                }
+            }
         }
 
         return ['message' => 'General settings updated successfully!', 'type' => 'success'];
@@ -97,13 +130,47 @@ function updatePayrollSettings($data) {
             'pension_relief_limit' => floatval($data['pension_relief_limit'] ?? 20000)
         ];
 
+        // Ensure system_settings table exists
+        if (!DatabaseUtils::tableExists($db, 'system_settings')) {
+            $createTableSQL = "CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id INTEGER NOT NULL,
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT,
+                setting_category VARCHAR(50) DEFAULT 'general',
+                description TEXT,
+                is_public BOOLEAN DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(company_id, setting_key)
+            )";
+            $db->exec($createTableSQL);
+        }
+
         foreach ($settings as $key => $value) {
-            $stmt = $db->prepare("
-                INSERT INTO system_settings (setting_key, setting_value, company_id)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
-            ");
-            $stmt->execute([$key, is_array($value) ? json_encode($value) : $value, $_SESSION['company_id']]);
+            // Database-agnostic UPSERT - try SQLite syntax first, fallback to manual approach
+            $finalValue = is_array($value) ? json_encode($value) : $value;
+            try {
+                $stmt = $db->prepare("
+                    INSERT OR REPLACE INTO system_settings (setting_key, setting_value, company_id)
+                    VALUES (?, ?, ?)
+                ");
+                $stmt->execute([$key, $finalValue, $_SESSION['company_id']]);
+            } catch (Exception $e) {
+                // Fallback: Check if exists, then update or insert
+                $checkStmt = $db->prepare("SELECT id FROM system_settings WHERE setting_key = ? AND company_id = ?");
+                $checkStmt->execute([$key, $_SESSION['company_id']]);
+
+                if ($checkStmt->rowCount() > 0) {
+                    // Update existing
+                    $updateStmt = $db->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = ? AND company_id = ?");
+                    $updateStmt->execute([$finalValue, $key, $_SESSION['company_id']]);
+                } else {
+                    // Insert new
+                    $insertStmt = $db->prepare("INSERT INTO system_settings (setting_key, setting_value, company_id) VALUES (?, ?, ?)");
+                    $insertStmt->execute([$key, $finalValue, $_SESSION['company_id']]);
+                }
+            }
         }
 
         return ['message' => 'Payroll settings updated successfully!', 'type' => 'success'];
@@ -129,13 +196,46 @@ function updateSecuritySettings($data) {
             'audit_log_retention' => intval($data['audit_log_retention'] ?? 90)
         ];
 
+        // Ensure system_settings table exists
+        if (!DatabaseUtils::tableExists($db, 'system_settings')) {
+            $createTableSQL = "CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_id INTEGER NOT NULL,
+                setting_key VARCHAR(100) NOT NULL,
+                setting_value TEXT,
+                setting_category VARCHAR(50) DEFAULT 'general',
+                description TEXT,
+                is_public BOOLEAN DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(company_id, setting_key)
+            )";
+            $db->exec($createTableSQL);
+        }
+
         foreach ($settings as $key => $value) {
-            $stmt = $db->prepare("
-                INSERT INTO system_settings (setting_key, setting_value, company_id)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
-            ");
-            $stmt->execute([$key, $value, $_SESSION['company_id']]);
+            // Database-agnostic UPSERT - try SQLite syntax first, fallback to manual approach
+            try {
+                $stmt = $db->prepare("
+                    INSERT OR REPLACE INTO system_settings (setting_key, setting_value, company_id)
+                    VALUES (?, ?, ?)
+                ");
+                $stmt->execute([$key, $value, $_SESSION['company_id']]);
+            } catch (Exception $e) {
+                // Fallback: Check if exists, then update or insert
+                $checkStmt = $db->prepare("SELECT id FROM system_settings WHERE setting_key = ? AND company_id = ?");
+                $checkStmt->execute([$key, $_SESSION['company_id']]);
+
+                if ($checkStmt->rowCount() > 0) {
+                    // Update existing
+                    $updateStmt = $db->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = ? AND company_id = ?");
+                    $updateStmt->execute([$value, $key, $_SESSION['company_id']]);
+                } else {
+                    // Insert new
+                    $insertStmt = $db->prepare("INSERT INTO system_settings (setting_key, setting_value, company_id) VALUES (?, ?, ?)");
+                    $insertStmt->execute([$key, $value, $_SESSION['company_id']]);
+                }
+            }
         }
 
         return ['message' => 'Security settings updated successfully!', 'type' => 'success'];
@@ -176,41 +276,38 @@ function performBackup() {
 function getCurrentSettings() {
     global $db;
 
-    $stmt = $db->prepare("SELECT setting_key, setting_value FROM system_settings WHERE company_id = ?");
-    $stmt->execute([$_SESSION['company_id']]);
-    $results = $stmt->fetchAll();
-
     $settings = [];
-    foreach ($results as $row) {
-        $settings[$row['setting_key']] = $row['setting_value'];
+
+    if (DatabaseUtils::tableExists($db, 'system_settings')) {
+        $stmt = $db->prepare("SELECT setting_key, setting_value FROM system_settings WHERE company_id = ?");
+        $stmt->execute([$_SESSION['company_id']]);
+        $results = $stmt->fetchAll();
+
+        foreach ($results as $row) {
+            $settings[$row['setting_key']] = $row['setting_value'];
+        }
     }
 
-    // Default values
-    $defaults = [
-        'company_name' => 'Your Company Name',
-        'company_address' => 'Nairobi, Kenya',
-        'company_phone' => '+254 700 000 000',
-        'company_email' => 'info@company.co.ke',
-        'timezone' => 'Africa/Nairobi',
-        'currency' => 'KES',
-        'date_format' => 'd/m/Y',
-        'nssf_rate' => '0.06',
-        'nssf_max_pensionable' => '18000',
-        'shif_rate' => '0.0275',
-        'shif_minimum' => '300',
-        'housing_levy_rate' => '0.015',
-        'personal_relief' => '2400',
-        'insurance_relief_limit' => '5000',
-        'pension_relief_limit' => '20000',
-        'session_timeout' => '30',
-        'max_login_attempts' => '5',
-        'password_min_length' => '8',
-        'require_password_change' => '0',
-        'enable_two_factor' => '0',
-        'audit_log_retention' => '90'
-    ];
+    // Return default settings if table doesn't exist or no settings found
+    if (empty($settings)) {
+        $settings = [
+            'company_name' => 'Garissa County Government',
+            'currency' => 'KES',
+            'date_format' => 'd/m/Y',
+            'timezone' => 'Africa/Nairobi',
+            'paye_rate_1' => 10,
+            'paye_rate_2' => 25,
+            'paye_rate_3' => 30,
+            'paye_rate_4' => 32.5,
+            'paye_rate_5' => 35,
+            'personal_relief' => 2400,
+            'nssf_rate' => 6,
+            'nhif_rate' => 2.75,
+            'housing_levy_rate' => 1.5
+        ];
+    }
 
-    return array_merge($defaults, $settings);
+    return $settings;
 }
 
 // Create system_settings table if it doesn't exist
@@ -443,28 +540,28 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="company_name" class="form-label">Company Name</label>
                                         <input type="text" class="form-control" id="company_name" name="company_name"
-                                               value="<?php echo htmlspecialchars($currentSettings['company_name']); ?>">
+                                               value="<?php echo htmlspecialchars($currentSettings['company_name'] ?? 'Garissa County Government'); ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="company_email" class="form-label">Company Email</label>
                                         <input type="email" class="form-control" id="company_email" name="company_email"
-                                               value="<?php echo htmlspecialchars($currentSettings['company_email']); ?>">
+                                               value="<?php echo htmlspecialchars($currentSettings['company_email'] ?? 'info@company.co.ke'); ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="company_phone" class="form-label">Company Phone</label>
                                         <input type="tel" class="form-control" id="company_phone" name="company_phone"
-                                               value="<?php echo htmlspecialchars($currentSettings['company_phone']); ?>">
+                                               value="<?php echo htmlspecialchars($currentSettings['company_phone'] ?? '+254 700 000 000'); ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="company_address" class="form-label">Company Address</label>
                                         <input type="text" class="form-control" id="company_address" name="company_address"
-                                               value="<?php echo htmlspecialchars($currentSettings['company_address']); ?>">
+                                               value="<?php echo htmlspecialchars($currentSettings['company_address'] ?? 'Nairobi, Kenya'); ?>">
                                     </div>
                                 </div>
                             </div>
@@ -477,8 +574,8 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="timezone" class="form-label">Timezone</label>
                                         <select class="form-select" id="timezone" name="timezone">
-                                            <option value="Africa/Nairobi" <?php echo $currentSettings['timezone'] === 'Africa/Nairobi' ? 'selected' : ''; ?>>Africa/Nairobi (EAT)</option>
-                                            <option value="UTC" <?php echo $currentSettings['timezone'] === 'UTC' ? 'selected' : ''; ?>>UTC</option>
+                                            <option value="Africa/Nairobi" <?php echo ($currentSettings['timezone'] ?? 'Africa/Nairobi') === 'Africa/Nairobi' ? 'selected' : ''; ?>>Africa/Nairobi (EAT)</option>
+                                            <option value="UTC" <?php echo ($currentSettings['timezone'] ?? 'Africa/Nairobi') === 'UTC' ? 'selected' : ''; ?>>UTC</option>
                                         </select>
                                     </div>
                                 </div>
@@ -486,8 +583,8 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="currency" class="form-label">Currency</label>
                                         <select class="form-select" id="currency" name="currency">
-                                            <option value="KES" <?php echo $currentSettings['currency'] === 'KES' ? 'selected' : ''; ?>>KES (Kenyan Shilling)</option>
-                                            <option value="USD" <?php echo $currentSettings['currency'] === 'USD' ? 'selected' : ''; ?>>USD (US Dollar)</option>
+                                            <option value="KES" <?php echo ($currentSettings['currency'] ?? 'KES') === 'KES' ? 'selected' : ''; ?>>KES (Kenyan Shilling)</option>
+                                            <option value="USD" <?php echo ($currentSettings['currency'] ?? 'KES') === 'USD' ? 'selected' : ''; ?>>USD (US Dollar)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -495,9 +592,9 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="date_format" class="form-label">Date Format</label>
                                         <select class="form-select" id="date_format" name="date_format">
-                                            <option value="d/m/Y" <?php echo $currentSettings['date_format'] === 'd/m/Y' ? 'selected' : ''; ?>>DD/MM/YYYY</option>
-                                            <option value="m/d/Y" <?php echo $currentSettings['date_format'] === 'm/d/Y' ? 'selected' : ''; ?>>MM/DD/YYYY</option>
-                                            <option value="Y-m-d" <?php echo $currentSettings['date_format'] === 'Y-m-d' ? 'selected' : ''; ?>>YYYY-MM-DD</option>
+                                            <option value="d/m/Y" <?php echo ($currentSettings['date_format'] ?? 'd/m/Y') === 'd/m/Y' ? 'selected' : ''; ?>>DD/MM/YYYY</option>
+                                            <option value="m/d/Y" <?php echo ($currentSettings['date_format'] ?? 'd/m/Y') === 'm/d/Y' ? 'selected' : ''; ?>>MM/DD/YYYY</option>
+                                            <option value="Y-m-d" <?php echo ($currentSettings['date_format'] ?? 'd/m/Y') === 'Y-m-d' ? 'selected' : ''; ?>>YYYY-MM-DD</option>
                                         </select>
                                     </div>
                                 </div>
@@ -575,14 +672,14 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="nssf_rate" class="form-label">NSSF Rate (%)</label>
                                         <input type="number" class="form-control" id="nssf_rate" name="nssf_rate"
-                                               value="<?php echo $currentSettings['nssf_rate']; ?>" step="0.01" min="0" max="1">
+                                               value="<?php echo $currentSettings['nssf_rate'] ?? '6'; ?>" step="0.01" min="0" max="1">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="nssf_max_pensionable" class="form-label">Max Pensionable Pay (KES)</label>
                                         <input type="number" class="form-control" id="nssf_max_pensionable" name="nssf_max_pensionable"
-                                               value="<?php echo $currentSettings['nssf_max_pensionable']; ?>" step="1" min="0">
+                                               value="<?php echo $currentSettings['nssf_max_pensionable'] ?? '18000'; ?>" step="1" min="0">
                                     </div>
                                 </div>
                             </div>
@@ -595,14 +692,14 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="shif_rate" class="form-label">SHIF Rate (%)</label>
                                         <input type="number" class="form-control" id="shif_rate" name="shif_rate"
-                                               value="<?php echo $currentSettings['shif_rate']; ?>" step="0.01" min="0" max="1">
+                                               value="<?php echo $currentSettings['shif_rate'] ?? '2.75'; ?>" step="0.01" min="0" max="1">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="shif_minimum" class="form-label">Minimum SHIF (KES)</label>
                                         <input type="number" class="form-control" id="shif_minimum" name="shif_minimum"
-                                               value="<?php echo $currentSettings['shif_minimum']; ?>" step="1" min="0">
+                                               value="<?php echo $currentSettings['shif_minimum'] ?? '300'; ?>" step="1" min="0">
                                     </div>
                                 </div>
                             </div>
@@ -615,21 +712,21 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="housing_levy_rate" class="form-label">Housing Levy Rate (%)</label>
                                         <input type="number" class="form-control" id="housing_levy_rate" name="housing_levy_rate"
-                                               value="<?php echo $currentSettings['housing_levy_rate']; ?>" step="0.01" min="0" max="1">
+                                               value="<?php echo $currentSettings['housing_levy_rate'] ?? '1.5'; ?>" step="0.01" min="0" max="1">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label for="personal_relief" class="form-label">Personal Relief (KES)</label>
                                         <input type="number" class="form-control" id="personal_relief" name="personal_relief"
-                                               value="<?php echo $currentSettings['personal_relief']; ?>" step="1" min="0">
+                                               value="<?php echo $currentSettings['personal_relief'] ?? '2400'; ?>" step="1" min="0">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label for="insurance_relief_limit" class="form-label">Insurance Relief Limit (KES)</label>
                                         <input type="number" class="form-control" id="insurance_relief_limit" name="insurance_relief_limit"
-                                               value="<?php echo $currentSettings['insurance_relief_limit']; ?>" step="1" min="0">
+                                               value="<?php echo $currentSettings['insurance_relief_limit'] ?? '5000'; ?>" step="1" min="0">
                                     </div>
                                 </div>
                             </div>
@@ -667,14 +764,14 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="session_timeout" class="form-label">Session Timeout (minutes)</label>
                                         <input type="number" class="form-control" id="session_timeout" name="session_timeout"
-                                               value="<?php echo $currentSettings['session_timeout']; ?>" min="5" max="480">
+                                               value="<?php echo $currentSettings['session_timeout'] ?? '30'; ?>" min="5" max="480">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="max_login_attempts" class="form-label">Max Login Attempts</label>
                                         <input type="number" class="form-control" id="max_login_attempts" name="max_login_attempts"
-                                               value="<?php echo $currentSettings['max_login_attempts']; ?>" min="3" max="10">
+                                               value="<?php echo $currentSettings['max_login_attempts'] ?? '5'; ?>" min="3" max="10">
                                     </div>
                                 </div>
                             </div>
@@ -687,14 +784,14 @@ $currentSettings = getCurrentSettings();
                                     <div class="mb-3">
                                         <label for="password_min_length" class="form-label">Minimum Password Length</label>
                                         <input type="number" class="form-control" id="password_min_length" name="password_min_length"
-                                               value="<?php echo $currentSettings['password_min_length']; ?>" min="6" max="20">
+                                               value="<?php echo $currentSettings['password_min_length'] ?? '8'; ?>" min="6" max="20">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="audit_log_retention" class="form-label">Audit Log Retention (days)</label>
                                         <input type="number" class="form-control" id="audit_log_retention" name="audit_log_retention"
-                                               value="<?php echo $currentSettings['audit_log_retention']; ?>" min="30" max="365">
+                                               value="<?php echo $currentSettings['audit_log_retention'] ?? '90'; ?>" min="30" max="365">
                                     </div>
                                 </div>
                             </div>
@@ -703,7 +800,7 @@ $currentSettings = getCurrentSettings();
                                 <div class="col-md-6">
                                     <div class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" id="require_password_change"
-                                               name="require_password_change" <?php echo $currentSettings['require_password_change'] ? 'checked' : ''; ?>>
+                                               name="require_password_change" <?php echo ($currentSettings['require_password_change'] ?? false) ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="require_password_change">
                                             Require Password Change on First Login
                                         </label>
@@ -712,7 +809,7 @@ $currentSettings = getCurrentSettings();
                                 <div class="col-md-6">
                                     <div class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" id="enable_two_factor"
-                                               name="enable_two_factor" <?php echo $currentSettings['enable_two_factor'] ? 'checked' : ''; ?>>
+                                               name="enable_two_factor" <?php echo ($currentSettings['enable_two_factor'] ?? false) ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="enable_two_factor">
                                             Enable Two-Factor Authentication
                                         </label>
