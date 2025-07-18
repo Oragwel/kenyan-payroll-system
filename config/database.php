@@ -25,32 +25,16 @@ if (file_exists($configFile)) {
 $db = $database->getConnection();
 
 // Legacy compatibility - some old code might expect this
-
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'kenyan_payroll';
-    private $username = 'payroll_user';
-    private $password = 'Mania124#';
-    private $port = '3306';
-    private $conn;
-
+    private $dbManager;
+    
+    public function __construct() {
+        global $database;
+        $this->dbManager = $database;
+    }
+    
     public function getConnection() {
-        $this->conn = null;
-        try {
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4",
-                $this->username,
-                $this->password,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false
-                ]
-            );
-        } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
-        }
-        return $this->conn;
+        return $this->dbManager->getConnection();
     }
 }
 ?>

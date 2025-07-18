@@ -154,7 +154,10 @@ class DatabaseInstaller {
             
             // Insert default company
             $results['company'] = $this->insertDefaultCompany($conn);
-            
+
+            // Insert default company settings
+            $results['company_settings'] = $this->insertDefaultCompanySettings($conn);
+
             // Insert default admin user
             $results['admin_user'] = $this->insertDefaultAdminUser($conn, $adminUser);
             
@@ -384,6 +387,67 @@ class DatabaseInstaller {
         }
         
         return $drivers;
+    }
+
+    /**
+     * Insert default company settings
+     */
+    private function insertDefaultCompanySettings($conn) {
+        // Check if company_settings table exists
+        try {
+            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM company_settings WHERE company_id = 1");
+            $stmt->execute();
+            $result = $stmt->fetch();
+
+            if ($result['count'] == 0) {
+                // Default settings for Kenyan payroll system
+                $defaultSettings = [
+                    // Payroll settings
+                    ['payroll', 'pay_frequency', 'monthly', 'How often employees are paid'],
+                    ['payroll', 'pay_day', '30', 'Day of month when salaries are paid'],
+                    ['payroll', 'overtime_rate', '1.5', 'Overtime multiplier rate'],
+                    ['payroll', 'working_hours_per_day', '8', 'Standard working hours per day'],
+                    ['payroll', 'working_days_per_week', '5', 'Standard working days per week'],
+
+                    // Tax settings
+                    ['tax', 'paye_enabled', '1', 'Enable PAYE tax calculations'],
+                    ['tax', 'nssf_enabled', '1', 'Enable NSSF deductions'],
+                    ['tax', 'nhif_enabled', '1', 'Enable SHIF deductions'],
+                    ['tax', 'housing_levy_enabled', '1', 'Enable Housing Levy deductions'],
+                    ['tax', 'personal_relief', '2400', 'Monthly personal relief amount'],
+
+                    // General settings
+                    ['general', 'currency', 'KES', 'Default currency'],
+                    ['general', 'currency_symbol', 'KSh', 'Currency symbol'],
+                    ['general', 'timezone', 'Africa/Nairobi', 'System timezone'],
+                    ['general', 'date_format', 'Y-m-d', 'Date display format'],
+                    ['general', 'decimal_places', '2', 'Decimal places for currency'],
+
+                    // Leave settings
+                    ['leave', 'annual_leave_days', '21', 'Annual leave entitlement'],
+                    ['leave', 'sick_leave_days', '14', 'Sick leave entitlement'],
+                    ['leave', 'maternity_leave_days', '90', 'Maternity leave entitlement'],
+                    ['leave', 'paternity_leave_days', '14', 'Paternity leave entitlement']
+                ];
+
+                $stmt = $conn->prepare("
+                    INSERT INTO company_settings (company_id, setting_category, setting_key, setting_value, description)
+                    VALUES (1, ?, ?, ?, ?)
+                ");
+
+                foreach ($defaultSettings as $setting) {
+                    $stmt->execute($setting);
+                }
+
+                return ['created' => true, 'message' => count($defaultSettings) . ' default company settings created'];
+            }
+
+            return ['created' => false, 'message' => 'Company settings already exist'];
+
+        } catch (Exception $e) {
+            // Table might not exist yet, that's okay
+            return ['created' => false, 'message' => 'Company settings table not available: ' . $e->getMessage()];
+        }
     }
 }
 ?>

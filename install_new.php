@@ -3,6 +3,9 @@
  * Modern Multi-Database Installer for Kenyan Payroll System
  */
 
+// Start session first
+session_start();
+
 require_once 'installer/DatabaseInstaller.php';
 
 // Check if already installed
@@ -14,6 +17,13 @@ if (DatabaseInstaller::isInstalled()) {
 $step = $_GET['step'] ?? 1;
 $error = '';
 $success = '';
+
+// Validate step access
+if ($step == 3 && (!isset($_SESSION['db_config']) || empty($_SESSION['db_config']))) {
+    // Redirect back to step 2 if no database config
+    header('Location: install_new.php?step=2');
+    exit;
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -34,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($testResult['success']) {
             $_SESSION['db_config'] = $config;
+            $_SESSION['installer_step'] = 3;
             header('Location: install_new.php?step=3');
             exit;
         } else {
@@ -47,10 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'password' => $_POST['admin_password']
         ];
         
-        if (isset($_SESSION['db_config'])) {
+        if (isset($_SESSION['db_config']) && !empty($_SESSION['db_config'])) {
             $installer = new DatabaseInstaller();
             $installResult = $installer->install($_SESSION['db_config'], $adminUser);
-            
+
             if ($installResult['success']) {
                 $_SESSION['install_success'] = $installResult;
                 header('Location: install_new.php?step=4');
@@ -59,12 +70,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = implode(', ', $installResult['errors']);
             }
         } else {
-            $error = 'Database configuration not found. Please start over.';
+            $error = 'Database configuration not found. Please start over from Step 2.';
+            // Debug info
+            if (isset($_SESSION['db_config'])) {
+                $error .= ' (Config exists but is empty)';
+            } else {
+                $error .= ' (No config in session)';
+            }
         }
     }
 }
-
-session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -384,6 +399,9 @@ session_start();
                         </div>
                         
                         <div class="text-center mt-4">
+                            <a href="install_new.php?step=2" class="btn btn-secondary me-3">
+                                <i class="fas fa-arrow-left"></i> Back to Database Setup
+                            </a>
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-cogs"></i> Install System
                             </button>
