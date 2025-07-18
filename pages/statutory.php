@@ -33,14 +33,16 @@ try {
 
     foreach ($columnsToAdd as $column => $sql) {
         try {
-            // Check if column exists
-            $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records LIKE ?");
-            $stmt->execute([$column]);
-            if ($stmt->rowCount() == 0) {
-                $db->exec($sql);
-            }
+            // Check if column exists using database-agnostic approach
+            $db->query("SELECT $column FROM payroll_records LIMIT 1");
+            // Column exists, skip
         } catch (Exception $e) {
-            // Column might already exist or other error, continue
+            // Column doesn't exist, try to add it
+            try {
+                $db->exec($sql);
+            } catch (Exception $e2) {
+                // Column might already exist or other error, continue
+            }
         }
     }
 
@@ -81,24 +83,76 @@ function generateStatutoryReport($data) {
     $endDate = $data['end_date'];
 
     try {
-        // Check which columns exist in payroll_records table
-        $stmt = $db->prepare("SHOW COLUMNS FROM payroll_records");
-        $stmt->execute();
-        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Check which columns exist in payroll_records table using database-agnostic approach
+        $hasTaxableIncome = false;
+        $hasTotalAllowances = false;
 
-        $hasTaxableIncome = in_array('taxable_income', $columns);
-        $hasTotalAllowances = in_array('total_allowances', $columns);
-        $hasAllowances = in_array('allowances', $columns);
-        $hasOtherDeductions = in_array('other_deductions', $columns);
+        try {
+            $db->query("SELECT taxable_income FROM payroll_records LIMIT 1");
+            $hasTaxableIncome = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        try {
+            $db->query("SELECT total_allowances FROM payroll_records LIMIT 1");
+            $hasTotalAllowances = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        $hasAllowances = false;
+        $hasOtherDeductions = false;
+
+        try {
+            $db->query("SELECT allowances FROM payroll_records LIMIT 1");
+            $hasAllowances = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        try {
+            $db->query("SELECT other_deductions FROM payroll_records LIMIT 1");
+            $hasOtherDeductions = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        // Check if statutory columns exist in employees table
+        $hasKraPin = false;
+        $hasNssfNumber = false;
+        $hasNhifNumber = false;
+
+        try {
+            $db->query("SELECT kra_pin FROM employees LIMIT 1");
+            $hasKraPin = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        try {
+            $db->query("SELECT nssf_number FROM employees LIMIT 1");
+            $hasNssfNumber = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
+
+        try {
+            $db->query("SELECT nhif_number FROM employees LIMIT 1");
+            $hasNhifNumber = true;
+        } catch (Exception $e) {
+            // Column doesn't exist
+        }
 
         // Build dynamic SELECT query based on available columns
+        $employeeNameConcat = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
         $selectFields = [
             'e.employee_number',
-            'CONCAT(e.first_name, \' \', e.last_name) as employee_name',
+            "$employeeNameConcat as employee_name",
             'e.id_number',
-            'e.kra_pin',
-            'e.nssf_number',
-            'e.nhif_number',
+            $hasKraPin ? 'e.kra_pin' : "'' as kra_pin",
+            $hasNssfNumber ? 'e.nssf_number' : "'' as nssf_number",
+            $hasNhifNumber ? 'e.nhif_number' : "'' as nhif_number",
             'pp.period_name',
             'pp.pay_date',
             'pr.basic_salary',
@@ -297,32 +351,39 @@ try {
 }
 
 // Get recent reports
-$stmt = $db->prepare("
-    SELECT sr.*, 
-           CONCAT(u.first_name, ' ', u.last_name) as generated_by_name
-    FROM statutory_reports sr
-    LEFT JOIN users u ON sr.generated_by = u.id
-    WHERE sr.company_id = ?
-    ORDER BY sr.created_at DESC
-    LIMIT 10
-");
-$stmt->execute([$_SESSION['company_id']]);
-$recentReports = $stmt->fetchAll();
+$recentReports = [];
+if (DatabaseUtils::tableExists($db, 'statutory_reports')) {
+    $stmt = $db->prepare("
+        SELECT sr.*,
+               u.username as generated_by_name
+        FROM statutory_reports sr
+        LEFT JOIN users u ON sr.generated_by = u.id
+        WHERE sr.company_id = ?
+        ORDER BY sr.generated_at DESC
+        LIMIT 10
+    ");
+    $stmt->execute([$_SESSION['company_id']]);
+    $recentReports = $stmt->fetchAll();
+}
 
 // Get summary statistics
-$stmt = $db->prepare("
-    SELECT 
-        report_type,
-        COUNT(*) as report_count,
-        SUM(total_amount) as total_amount,
-        MAX(created_at) as last_generated
-    FROM statutory_reports 
-    WHERE company_id = ? 
-    AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-    GROUP BY report_type
-");
-$stmt->execute([$_SESSION['company_id']]);
-$reportStats = $stmt->fetchAll();
+$reportStats = [];
+if (DatabaseUtils::tableExists($db, 'statutory_reports')) {
+    $twelveMonthsAgo = DatabaseUtils::monthsAgo(12);
+    $stmt = $db->prepare("
+        SELECT
+            report_type,
+            COUNT(*) as report_count,
+            SUM(total_amount) as total_amount,
+            MAX(generated_at) as last_generated
+        FROM statutory_reports
+        WHERE company_id = ?
+        AND generated_at >= ?
+        GROUP BY report_type
+    ");
+    $stmt->execute([$_SESSION['company_id'], $twelveMonthsAgo]);
+    $reportStats = $stmt->fetchAll();
+}
 
 // Get company info for reports
 $stmt = $db->prepare("SELECT * FROM companies WHERE id = ?");
