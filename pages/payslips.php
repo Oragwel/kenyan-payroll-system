@@ -65,9 +65,10 @@ if ($action === 'view' && $payslipId) {
     // Get payslips list
     if (hasPermission('hr') && !$employeeId) {
         // HR can see all payslips (but only for active employees)
+        $employeeNameConcat = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
         $stmt = $db->prepare("
             SELECT pr.*, pp.period_name, pp.pay_date,
-                   CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+                   $employeeNameConcat as employee_name,
                    e.employee_number, e.id as employee_id
             FROM payroll_records pr
             JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
@@ -79,9 +80,10 @@ if ($action === 'view' && $payslipId) {
     } else {
         // Employee or specific employee payslips (only for active employees)
         $targetEmployeeId = $employeeId ?: $_SESSION['employee_id'];
+        $employeeNameConcat2 = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
         $stmt = $db->prepare("
             SELECT pr.*, pp.period_name, pp.pay_date, pp.start_date, pp.end_date,
-                   CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+                   $employeeNameConcat2 as employee_name,
                    e.employee_number
             FROM payroll_records pr
             JOIN payroll_periods pp ON pr.payroll_period_id = pp.id

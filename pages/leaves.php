@@ -1,3 +1,4 @@
+
 <?php
 /**
  * Leave Management System
@@ -120,12 +121,13 @@ function processLeaveApplication($applicationId, $action, $comments) {
 // Get data based on user role and action
 if (hasPermission('hr')) {
     // HR can see all applications
+    $employeeNameConcat = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
     $stmt = $db->prepare("
         SELECT la.*,
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+               $employeeNameConcat as employee_name,
                e.employee_number,
                lt.name as leave_type_name,
-               CONCAT(u.first_name, ' ', u.last_name) as approved_by_name
+               u.username as approved_by_name
         FROM leave_applications la
         JOIN employees e ON la.employee_id = e.id
         JOIN leave_types lt ON la.leave_type_id = lt.id
@@ -137,9 +139,10 @@ if (hasPermission('hr')) {
     $applications = $stmt->fetchAll();
 } else {
     // Employees see only their applications
+    $approvedByConcat2 = DatabaseUtils::concat(['u.first_name', "' '", 'u.last_name']);
     $stmt = $db->prepare("
         SELECT la.*, lt.name as leave_type_name,
-               CONCAT(u.first_name, ' ', u.last_name) as approved_by_name
+               $approvedByConcat2 as approved_by_name
         FROM leave_applications la
         JOIN leave_types lt ON la.leave_type_id = lt.id
         LEFT JOIN users u ON la.approved_by = u.id

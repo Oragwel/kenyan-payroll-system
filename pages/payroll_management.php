@@ -138,16 +138,28 @@ $stmt = $db->prepare("
 $stmt->execute([$_SESSION['company_id']]);
 $payrollPeriods = $stmt->fetchAll();
 
-// Get duplicate statistics
-$stmt = $db->prepare("
-    SELECT 
-        COUNT(*) as total_duplicates,
-        COUNT(DISTINCT employee_id, payroll_period_id) as unique_combinations
-    FROM payroll_records pr
-    JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-    WHERE pp.company_id = ?
-    HAVING COUNT(*) > COUNT(DISTINCT employee_id, payroll_period_id)
-");
+// Get duplicate statistics (database-agnostic approach)
+if (DatabaseUtils::getDatabaseType() === 'sqlite') {
+    // SQLite approach: use concatenation for distinct counting
+    $stmt = $db->prepare("
+        SELECT
+            COUNT(*) as total_records,
+            COUNT(DISTINCT (employee_id || '-' || payroll_period_id)) as unique_combinations
+        FROM payroll_records pr
+        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        WHERE pp.company_id = ?
+    ");
+} else {
+    // MySQL/PostgreSQL approach: use multiple column distinct
+    $stmt = $db->prepare("
+        SELECT
+            COUNT(*) as total_records,
+            COUNT(DISTINCT employee_id, payroll_period_id) as unique_combinations
+        FROM payroll_records pr
+        JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        WHERE pp.company_id = ?
+    ");
+}
 $stmt->execute([$_SESSION['company_id']]);
 $duplicateStats = $stmt->fetch();
 ?>
@@ -223,10 +235,15 @@ $duplicateStats = $stmt->fetch();
     <?php endif; ?>
 
     <!-- Duplicate Detection Alert -->
-    <?php if ($duplicateStats && $duplicateStats['total_duplicates'] > $duplicateStats['unique_combinations']): ?>
+    <?php
+    $totalRecords = $duplicateStats['total_records'] ?? 0;
+    $uniqueCombinations = $duplicateStats['unique_combinations'] ?? 0;
+    $duplicateCount = $totalRecords - $uniqueCombinations;
+    if ($duplicateStats && $duplicateCount > 0):
+    ?>
         <div class="alert alert-warning">
             <h5><i class="fas fa-exclamation-triangle"></i> Duplicate Records Detected!</h5>
-            <p>Found <strong><?php echo $duplicateStats['total_duplicates'] - $duplicateStats['unique_combinations']; ?></strong> duplicate payroll records.</p>
+            <p>Found <strong><?php echo $duplicateCount; ?></strong> duplicate payroll records.</p>
             <form method="POST" style="display: inline;">
                 <input type="hidden" name="action" value="delete_duplicates">
                 <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to remove all duplicate payroll records? This will keep only the latest record for each employee per period.')">

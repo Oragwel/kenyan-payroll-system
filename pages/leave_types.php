@@ -331,6 +331,7 @@ if ($action === 'list' || $action === 'add' || $action === 'edit') {
         if (!isset($type['is_active'])) $type['is_active'] = 1;
         if (!isset($type['carry_forward'])) $type['carry_forward'] = 0;
         if (!isset($type['max_carry_forward'])) $type['max_carry_forward'] = 0;
+        if (!isset($type['days_per_year'])) $type['days_per_year'] = 0;
         if (!isset($type['description'])) $type['description'] = '';
     }
 }
@@ -506,7 +507,7 @@ if ($action === 'edit' && $leaveTypeId) {
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-primary"><?php echo $type['days_per_year']; ?> days</span>
+                                                <span class="badge bg-primary"><?php echo $type['days_per_year'] ?? 0; ?> days</span>
                                             </td>
                                             <td>
                                                 <span class="badge <?php echo $type['is_paid'] ? 'badge-paid' : 'badge-unpaid'; ?>">
