@@ -154,9 +154,10 @@ if (isset($_SESSION['employee_id'])) {
 // Get attendance records based on user role
 if (hasPermission('hr')) {
     // HR can see all attendance
+    $employeeNameConcat = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
     $stmt = $db->prepare("
-        SELECT a.*, 
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+        SELECT a.*,
+               $employeeNameConcat as employee_name,
                e.employee_number,
                d.name as department_name
         FROM attendance a
@@ -169,9 +170,10 @@ if (hasPermission('hr')) {
     $stmt->execute([$_SESSION['company_id']]);
 } else {
     // Employees see only their attendance
+    $employeeNameConcat2 = DatabaseUtils::concat(['e.first_name', "' '", 'e.last_name']);
     $stmt = $db->prepare("
-        SELECT a.*, 
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+        SELECT a.*,
+               $employeeNameConcat2 as employee_name,
                e.employee_number
         FROM attendance a
         JOIN employees e ON a.employee_id = e.id
@@ -186,9 +188,10 @@ $attendanceRecords = $stmt->fetchAll();
 // Get employees for manual entry (HR only)
 $employees = [];
 if (hasPermission('hr')) {
+    $employeeNameConcat3 = DatabaseUtils::concat(['first_name', "' '", 'last_name']);
     $stmt = $db->prepare("
-        SELECT id, CONCAT(first_name, ' ', last_name) as name, employee_number
-        FROM employees 
+        SELECT id, $employeeNameConcat3 as name, employee_number
+        FROM employees
         WHERE company_id = ? AND employment_status = 'active'
         ORDER BY first_name, last_name
     ");

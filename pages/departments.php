@@ -108,8 +108,8 @@ function deleteDepartment($departmentId) {
 }
 
 // Get departments list with employee count
-$stmt = $db->prepare("
-    SELECT d.*, 
+$stmt = DatabaseUtils::prepare($db, "
+    SELECT d.*,
            CONCAT(e.first_name, ' ', e.last_name) as manager_name,
            COUNT(emp.id) as employee_count
     FROM departments d
@@ -123,9 +123,10 @@ $stmt->execute([$_SESSION['company_id']]);
 $departments = $stmt->fetchAll();
 
 // Get employees for manager selection
+$nameConcat = DatabaseUtils::concat(['first_name', "' '", 'last_name']);
 $stmt = $db->prepare("
-    SELECT id, CONCAT(first_name, ' ', last_name) as name, employee_number
-    FROM employees 
+    SELECT id, $nameConcat as name, employee_number
+    FROM employees
     WHERE company_id = ? AND employment_status = 'active'
     ORDER BY first_name, last_name
 ");

@@ -423,15 +423,19 @@ if ($action === 'edit' && isset($_GET['id'])) {
                                                 </div>
                                             <?php endif; ?>
                                             
-                                            <?php if ($pos['min_salary'] || $pos['max_salary']): ?>
+                                            <?php
+                                            $minSalary = $pos['min_salary'] ?? 0;
+                                            $maxSalary = $pos['max_salary'] ?? 0;
+                                            if ($minSalary > 0 || $maxSalary > 0):
+                                            ?>
                                                 <div class="salary-range mb-3">
                                                     <i class="fas fa-money-bill-wave me-2"></i>
-                                                    <?php if ($pos['min_salary'] && $pos['max_salary']): ?>
-                                                        KES <?php echo number_format($pos['min_salary']); ?> - <?php echo number_format($pos['max_salary']); ?>
-                                                    <?php elseif ($pos['min_salary']): ?>
-                                                        From KES <?php echo number_format($pos['min_salary']); ?>
+                                                    <?php if ($minSalary > 0 && $maxSalary > 0): ?>
+                                                        KES <?php echo number_format($minSalary); ?> - <?php echo number_format($maxSalary); ?>
+                                                    <?php elseif ($minSalary > 0): ?>
+                                                        From KES <?php echo number_format($minSalary); ?>
                                                     <?php else: ?>
-                                                        Up to KES <?php echo number_format($pos['max_salary']); ?>
+                                                        Up to KES <?php echo number_format($maxSalary); ?>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>

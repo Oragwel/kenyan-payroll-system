@@ -269,18 +269,29 @@ try {
 // Get data based on action
 if ($action === 'list' || $action === 'add_type' || $action === 'edit_type') {
     // Get allowance types
-    $stmt = $db->prepare("SELECT * FROM allowance_types WHERE company_id = ? ORDER BY name");
-    $stmt->execute([$_SESSION['company_id']]);
-    $allowanceTypes = $stmt->fetchAll();
+    if (DatabaseUtils::tableExists($db, 'allowance_types')) {
+        $stmt = $db->prepare("SELECT * FROM allowance_types WHERE company_id = ? ORDER BY name");
+        $stmt->execute([$_SESSION['company_id']]);
+        $allowanceTypes = $stmt->fetchAll();
+    } else {
+        $allowanceTypes = [];
+    }
 }
 
 if ($action === 'edit_type' && $allowanceId) {
-    $stmt = $db->prepare("SELECT * FROM allowance_types WHERE id = ? AND company_id = ?");
-    $stmt->execute([$allowanceId, $_SESSION['company_id']]);
-    $editAllowanceType = $stmt->fetch();
-    
-    if (!$editAllowanceType) {
-        $message = 'Allowance type not found';
+    if (DatabaseUtils::tableExists($db, 'allowance_types')) {
+        $stmt = $db->prepare("SELECT * FROM allowance_types WHERE id = ? AND company_id = ?");
+        $stmt->execute([$allowanceId, $_SESSION['company_id']]);
+        $editAllowanceType = $stmt->fetch();
+
+        if (!$editAllowanceType) {
+            $message = 'Allowance type not found';
+            $messageType = 'danger';
+            $action = 'list';
+        }
+    } else {
+        $editAllowanceType = null;
+        $message = 'Allowance types table not available';
         $messageType = 'danger';
         $action = 'list';
     }

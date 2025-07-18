@@ -175,14 +175,36 @@ $stmt = $db->prepare("SELECT * FROM companies WHERE id = ?");
 $stmt->execute([$_SESSION['company_id']]);
 $company = $stmt->fetch();
 
-// Get company settings
-$stmt = $db->prepare("SELECT setting_key, setting_value, setting_category FROM company_settings WHERE company_id = ?");
-$stmt->execute([$_SESSION['company_id']]);
-$settingsData = $stmt->fetchAll();
-
+// Get company settings (with fallback if table doesn't exist)
 $settings = [];
-foreach ($settingsData as $setting) {
-    $settings[$setting['setting_category']][$setting['setting_key']] = $setting['setting_value'];
+if (DatabaseUtils::tableExists($db, 'company_settings')) {
+    $stmt = $db->prepare("SELECT setting_key, setting_value, setting_category FROM company_settings WHERE company_id = ?");
+    $stmt->execute([$_SESSION['company_id']]);
+    $settingsData = $stmt->fetchAll();
+
+    foreach ($settingsData as $setting) {
+        $settings[$setting['setting_category']][$setting['setting_key']] = $setting['setting_value'];
+    }
+} else {
+    // Default settings when table doesn't exist
+    $settings = [
+        'payroll' => [
+            'pay_frequency' => 'monthly',
+            'pay_day' => '30',
+            'overtime_rate' => '1.5'
+        ],
+        'tax' => [
+            'paye_enabled' => '1',
+            'nssf_enabled' => '1',
+            'nhif_enabled' => '1',
+            'housing_levy_enabled' => '1'
+        ],
+        'general' => [
+            'currency' => 'KES',
+            'timezone' => 'Africa/Nairobi',
+            'date_format' => 'Y-m-d'
+        ]
+    ];
 }
 
 // Default values
