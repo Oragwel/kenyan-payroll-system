@@ -260,27 +260,40 @@ function handleBulkImport($file) {
         return ['message' => 'Failed to read CSV file', 'type' => 'danger'];
     }
 
-    $header = fgetcsv($handle);
-    $expectedHeaders = [
-        'first_name', 'middle_name', 'last_name', 'id_number', 'email',
-        'phone', 'hire_date', 'basic_salary', 'department_name',
-        'position_title', 'employment_type', 'kra_pin', 'nssf_number', 'nhif_number',
-        'bank_code', 'bank_name', 'bank_branch', 'account_number'
-    ];
+    $header = fgetcsv($handle, 0, ",", '"', "\\");
+
+    // Check which columns actually exist in the database
+    $availableColumns = [];
+    $coreColumns = ['first_name', 'last_name', 'id_number', 'email', 'phone', 'hire_date', 'basic_salary', 'department_name', 'position_title', 'employment_type'];
+    $optionalColumns = ['middle_name', 'kra_pin', 'nssf_number', 'nhif_number', 'bank_code', 'bank_name', 'bank_branch', 'account_number'];
+
+    // Core columns are always expected
+    $expectedHeaders = $coreColumns;
+
+    // Add optional columns only if they exist in the database
+    foreach ($optionalColumns as $column) {
+        try {
+            $db->query("SELECT $column FROM employees LIMIT 1");
+            $expectedHeaders[] = $column;
+        } catch (Exception $e) {
+            // Column doesn't exist, don't require it
+        }
+    }
 
     // Normalize headers (remove BOM and trim)
     $header = array_map(function($h) {
         return trim(str_replace("\xEF\xBB\xBF", '', $h));
     }, $header);
 
-    // Validate headers
-    $missingHeaders = array_diff($expectedHeaders, $header);
-    if (!empty($missingHeaders)) {
+    // Validate only required headers (core + available optional)
+    $requiredHeaders = ['first_name', 'last_name', 'basic_salary']; // Only truly required fields
+    $missingRequired = array_diff($requiredHeaders, $header);
+    if (!empty($missingRequired)) {
         fclose($handle);
         unlink($filePath);
         return [
-            'message' => 'Missing required columns: ' . implode(', ', $missingHeaders) .
-                        '. Please download the template and ensure all columns are present.',
+            'message' => 'Missing required columns: ' . implode(', ', $missingRequired) .
+                        '. At minimum, you need: first_name, last_name, basic_salary.',
             'type' => 'danger'
         ];
     }
@@ -305,13 +318,23 @@ function handleBulkImport($file) {
         $positions[strtolower($pos['title'])] = $pos['id'];
     }
 
-    while (($data = fgetcsv($handle)) !== FALSE) {
+    while (($data = fgetcsv($handle, 0, ",", '"', "\\")) !== FALSE) {
         $row++;
 
-        if (count($data) !== count($header)) {
-            $errors[] = "Row $row: Column count mismatch";
-            $errorCount++;
+        // Skip empty rows
+        if (empty(array_filter($data))) {
             continue;
+        }
+
+        // Handle column count mismatch more gracefully
+        if (count($data) !== count($header)) {
+            // If we have fewer data columns, pad with empty strings
+            if (count($data) < count($header)) {
+                $data = array_pad($data, count($header), '');
+            } else {
+                // If we have more data columns, truncate to header count
+                $data = array_slice($data, 0, count($header));
+            }
         }
 
         $employee = array_combine($header, $data);
@@ -406,37 +429,61 @@ function handleBulkImport($file) {
         try {
             $employeeNumber = generateEmployeeNumber($_SESSION['company_id']);
 
-            $stmt = $db->prepare("
-                INSERT INTO employees (
-                    company_id, employee_number, first_name, middle_name, last_name,
-                    id_number, email, phone, hire_date, basic_salary, department_id,
-                    position_id, contract_type, kra_pin, nssf_number, nhif_number,
-                    bank_code, bank_name, bank_branch, account_number
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
+            // Check which columns exist in the employees table
+            $availableColumns = [];
+            $availableValues = [];
 
-            $stmt->execute([
-                $_SESSION['company_id'],
-                $employeeNumber,
-                $employee['first_name'],
-                $employee['middle_name'],
-                $employee['last_name'],
-                $employee['id_number'],
-                $employee['email'],
-                $employee['phone'],
-                $hireDate,
-                $basicSalary,
-                $departmentId,
-                $positionId,
-                $contractType,
-                $employee['kra_pin'],
-                $employee['nssf_number'],
-                $employee['nhif_number'],
-                $employee['bank_code'],
-                $employee['bank_name'],
-                $employee['bank_branch'],
-                $employee['account_number']
-            ]);
+            // Core columns that should always exist
+            $coreColumns = [
+                'company_id' => $_SESSION['company_id'],
+                'employee_number' => $employeeNumber,
+                'first_name' => $employee['first_name'] ?? '',
+                'last_name' => $employee['last_name'] ?? '',
+                'id_number' => $employee['id_number'] ?? '',
+                'email' => $employee['email'] ?? '',
+                'phone' => $employee['phone'] ?? '',
+                'hire_date' => $hireDate,
+                'basic_salary' => $basicSalary,
+                'department_id' => $departmentId,
+                'position_id' => $positionId,
+                'contract_type' => $contractType
+            ];
+
+            // Optional columns that might not exist
+            $optionalColumns = [
+                'middle_name' => $employee['middle_name'] ?? '',
+                'kra_pin' => $employee['kra_pin'] ?? '',
+                'nssf_number' => $employee['nssf_number'] ?? '',
+                'nhif_number' => $employee['nhif_number'] ?? '',
+                'bank_code' => $employee['bank_code'] ?? '',
+                'bank_name' => $employee['bank_name'] ?? '',
+                'bank_branch' => $employee['bank_branch'] ?? '',
+                'account_number' => $employee['account_number'] ?? ''
+            ];
+
+            // Add core columns
+            foreach ($coreColumns as $column => $value) {
+                $availableColumns[] = $column;
+                $availableValues[] = $value;
+            }
+
+            // Check and add optional columns if they exist
+            foreach ($optionalColumns as $column => $value) {
+                try {
+                    $db->query("SELECT $column FROM employees LIMIT 1");
+                    $availableColumns[] = $column;
+                    $availableValues[] = $value;
+                } catch (Exception $e) {
+                    // Column doesn't exist, skip it
+                }
+            }
+
+            // Build dynamic INSERT query
+            $columnList = implode(', ', $availableColumns);
+            $placeholders = str_repeat('?,', count($availableColumns) - 1) . '?';
+
+            $stmt = $db->prepare("INSERT INTO employees ($columnList) VALUES ($placeholders)");
+            $stmt->execute($availableValues);
 
             $successCount++;
 
@@ -460,6 +507,20 @@ function handleBulkImport($file) {
         } else {
             $message .= ". First 10 errors:\n" . implode("\n", array_slice($errors, 0, 10));
         }
+    }
+
+    // Add debug information about CSV structure
+    $message .= "\n\nDebug Info:";
+    $message .= "\n- Required columns: " . implode(', ', $requiredHeaders);
+    $message .= "\n- CSV header columns (" . count($header) . "): " . implode(', ', array_slice($header, 0, 20));
+    if (count($header) > 20) {
+        $message .= "... (showing first 20 of " . count($header) . " columns)";
+    }
+    $message .= "\n- Total rows processed: " . ($row - 1);
+
+    // Show first few data rows for debugging
+    if (!empty($errors) && count($errors) <= 3) {
+        $message .= "\n- Sample data issues detected in CSV structure";
     }
 
     return [

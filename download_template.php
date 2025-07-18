@@ -25,7 +25,7 @@ if ($type === 'employees') {
     // Create file pointer connected to the output stream
     $output = fopen('php://output', 'w');
 
-    // CSV headers
+    // Core CSV headers (always included)
     $headers = [
         'first_name',
         'middle_name',
@@ -37,7 +37,11 @@ if ($type === 'employees') {
         'basic_salary',
         'department_name',
         'position_title',
-        'employment_type',
+        'employment_type'
+    ];
+
+    // Optional headers (only include if columns exist in database)
+    $optionalHeaders = [
         'kra_pin',
         'nssf_number',
         'nhif_number',
@@ -47,72 +51,94 @@ if ($type === 'employees') {
         'account_number'
     ];
 
+    // Check which optional columns exist
+    foreach ($optionalHeaders as $column) {
+        try {
+            if (isset($database) && $database) {
+                $database->query("SELECT $column FROM employees LIMIT 1");
+                $headers[] = $column;
+            }
+        } catch (Exception $e) {
+            // Column doesn't exist, don't include it
+        }
+    }
+
     // Write headers
     fputcsv($output, $headers);
 
-    // Sample data rows
-    $sampleData = [
+    // Sample data rows - build dynamically based on available headers
+    $baseSampleData = [
         [
-            'John',
-            'Doe',
-            'Smith',
-            '12345678',
-            'john.smith@company.co.ke',
-            '+254700123456',
-            '2024-01-15',
-            '50000.00',
-            'Information Technology',
-            'Software Developer',
-            'permanent',
-            'A123456789B',
-            '123456',
-            '654321',
-            '11',
-            'Equity Bank',
-            'Nairobi Branch',
-            '1234567890'
+            'first_name' => 'John',
+            'middle_name' => 'Doe',
+            'last_name' => 'Smith',
+            'id_number' => '12345678',
+            'email' => 'john.smith@company.co.ke',
+            'phone' => '+254700123456',
+            'hire_date' => '2024-01-15',
+            'basic_salary' => '50000.00',
+            'department_name' => 'Information Technology',
+            'position_title' => 'Software Developer',
+            'employment_type' => 'permanent',
+            'kra_pin' => 'A123456789B',
+            'nssf_number' => '123456',
+            'nhif_number' => '654321',
+            'bank_code' => '11',
+            'bank_name' => 'Equity Bank',
+            'bank_branch' => 'Nairobi Branch',
+            'account_number' => '1234567890'
         ],
         [
-            'Jane',
-            'Mary',
-            'Doe',
-            '87654321',
-            'jane.doe@company.co.ke',
-            '+254701234567',
-            '2024-02-01',
-            '75000.00',
-            'Human Resources',
-            'HR Manager',
-            'permanent',
-            'B987654321C',
-            '789012',
-            '210987',
-            '01',
-            'Kenya Commercial Bank (KCB)',
-            'Westlands Branch',
-            '0987654321'
+            'first_name' => 'Jane',
+            'middle_name' => 'Mary',
+            'last_name' => 'Doe',
+            'id_number' => '87654321',
+            'email' => 'jane.doe@company.co.ke',
+            'phone' => '+254701234567',
+            'hire_date' => '2024-02-01',
+            'basic_salary' => '75000.00',
+            'department_name' => 'Human Resources',
+            'position_title' => 'HR Manager',
+            'employment_type' => 'permanent',
+            'kra_pin' => 'B987654321C',
+            'nssf_number' => '789012',
+            'nhif_number' => '210987',
+            'bank_code' => '01',
+            'bank_name' => 'Kenya Commercial Bank (KCB)',
+            'bank_branch' => 'Westlands Branch',
+            'account_number' => '0987654321'
         ],
         [
-            'Peter',
-            '',
-            'Kamau',
-            '11223344',
-            'peter.kamau@company.co.ke',
-            '+254702345678',
-            '2024-03-01',
-            '35000.00',
-            'Finance',
-            'Accountant',
-            'contract',
-            'C112233445D',
-            '345678',
-            '876543',
-            '12',
-            'Cooperative Bank of Kenya',
-            'CBD Branch',
-            '5432109876'
+            'first_name' => 'Peter',
+            'middle_name' => '',
+            'last_name' => 'Kamau',
+            'id_number' => '11223344',
+            'email' => 'peter.kamau@company.co.ke',
+            'phone' => '+254702345678',
+            'hire_date' => '2024-03-01',
+            'basic_salary' => '35000.00',
+            'department_name' => 'Finance',
+            'position_title' => 'Accountant',
+            'employment_type' => 'contract',
+            'kra_pin' => 'C112233445D',
+            'nssf_number' => '345678',
+            'nhif_number' => '876543',
+            'bank_code' => '12',
+            'bank_name' => 'Cooperative Bank of Kenya',
+            'bank_branch' => 'CBD Branch',
+            'account_number' => '5432109876'
         ]
     ];
+
+    // Build sample data rows based on available headers
+    $sampleData = [];
+    foreach ($baseSampleData as $baseRow) {
+        $row = [];
+        foreach ($headers as $header) {
+            $row[] = $baseRow[$header] ?? '';
+        }
+        $sampleData[] = $row;
+    }
 
     // Write sample data
     foreach ($sampleData as $row) {
