@@ -6,9 +6,11 @@
 
 session_start();
 
-// Comprehensive installation check
-require_once 'includes/installation_check.php';
-enforceInstallationCheck();
+// Simple installation check
+if (!file_exists('config/installed.txt')) {
+    header('Location: install_new.php');
+    exit;
+}
 
 require_once 'config/database.php';
 require_once 'includes/functions.php';

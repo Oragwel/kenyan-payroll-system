@@ -8,6 +8,10 @@ if (!hasPermission('admin')) {
     exit;
 }
 
+// Include database utilities for cross-database compatibility
+require_once 'includes/DatabaseUtils.php';
+DatabaseUtils::initialize($database);
+
 // Get security statistics
 $securityStats = [];
 
@@ -27,32 +31,33 @@ $stmt->execute();
 $recentAttempts = $stmt->fetchAll();
 
 // Failed login attempts in last 24 hours
+$twentyFourHoursAgo = DatabaseUtils::hoursAgo(24);
 $stmt = $db->prepare("
-    SELECT COUNT(*) as count 
-    FROM login_attempts 
-    WHERE success = FALSE 
-    AND attempt_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    SELECT COUNT(*) as count
+    FROM login_attempts
+    WHERE success = ?
+    AND attempt_time > ?
 ");
-$stmt->execute();
+$stmt->execute([DatabaseUtils::falseValue(), $twentyFourHoursAgo]);
 $securityStats['failed_attempts_24h'] = $stmt->fetch()['count'];
 
 // Successful logins in last 24 hours
 $stmt = $db->prepare("
-    SELECT COUNT(*) as count 
-    FROM login_attempts 
-    WHERE success = TRUE 
-    AND attempt_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    SELECT COUNT(*) as count
+    FROM login_attempts
+    WHERE success = ?
+    AND attempt_time > ?
 ");
-$stmt->execute();
+$stmt->execute([DatabaseUtils::trueValue(), $twentyFourHoursAgo]);
 $securityStats['successful_logins_24h'] = $stmt->fetch()['count'];
 
 // Unique IPs in last 24 hours
 $stmt = $db->prepare("
-    SELECT COUNT(DISTINCT ip_address) as count 
-    FROM login_attempts 
-    WHERE attempt_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    SELECT COUNT(DISTINCT ip_address) as count
+    FROM login_attempts
+    WHERE attempt_time > ?
 ");
-$stmt->execute();
+$stmt->execute([$twentyFourHoursAgo]);
 $securityStats['unique_ips_24h'] = $stmt->fetch()['count'];
 
 // Security events
@@ -77,12 +82,13 @@ $stmt = $db->prepare("
         MAX(la.attempt_time) as last_login
     FROM login_attempts la
     JOIN users u ON la.username = u.username
-    WHERE la.success = TRUE
-    AND la.attempt_time > DATE_SUB(NOW(), INTERVAL 8 HOUR)
+    WHERE la.success = ?
+    AND la.attempt_time > ?
     GROUP BY u.username, u.role, la.ip_address
     ORDER BY last_login DESC
 ");
-$stmt->execute();
+$eightHoursAgo = DatabaseUtils::hoursAgo(8);
+$stmt->execute([DatabaseUtils::trueValue(), $eightHoursAgo]);
 $activeSessions = $stmt->fetchAll();
 ?>
 

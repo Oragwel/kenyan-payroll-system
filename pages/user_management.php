@@ -197,13 +197,27 @@ if ($action === 'edit' && $userId) {
 
 // Get all users for list
 if ($action === 'list') {
-    $stmt = $db->prepare("
-        SELECT u.*, 
-               (SELECT COUNT(*) FROM activity_logs WHERE user_id = u.id) as activity_count,
-               (SELECT MAX(created_at) FROM activity_logs WHERE user_id = u.id) as last_activity
-        FROM users u 
-        ORDER BY u.created_at DESC
-    ");
+    // Check if security_logs table exists for activity tracking
+    $hasSecurityLogs = DatabaseUtils::tableExists($db, 'security_logs');
+
+    if ($hasSecurityLogs) {
+        $stmt = $db->prepare("
+            SELECT u.*,
+                   (SELECT COUNT(*) FROM security_logs WHERE user_id = u.id) as activity_count,
+                   (SELECT MAX(created_at) FROM security_logs WHERE user_id = u.id) as last_activity
+            FROM users u
+            ORDER BY u.created_at DESC
+        ");
+    } else {
+        // Fallback query without activity tracking
+        $stmt = $db->prepare("
+            SELECT u.*,
+                   0 as activity_count,
+                   NULL as last_activity
+            FROM users u
+            ORDER BY u.created_at DESC
+        ");
+    }
     $stmt->execute();
     $users = $stmt->fetchAll();
 }

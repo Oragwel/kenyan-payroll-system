@@ -50,14 +50,18 @@ function updateProfile($data) {
             return ['message' => 'Email address is already in use by another user.', 'type' => 'danger'];
         }
         
-        // Update user profile
+        // Update employee profile (names are in employees table)
         $stmt = $db->prepare("
-            UPDATE users 
-            SET first_name = ?, last_name = ?, email = ?, phone = ?, updated_at = NOW()
-            WHERE id = ?
+            UPDATE employees
+            SET first_name = ?, last_name = ?, email = ?, phone = ?, updated_at = ?
+            WHERE id = (SELECT employee_id FROM users WHERE id = ?)
         ");
-        $stmt->execute([$firstName, $lastName, $email, $phone, $_SESSION['user_id']]);
-        
+        $stmt->execute([$firstName, $lastName, $email, $phone, DatabaseUtils::now(), $_SESSION['user_id']]);
+
+        // Update user email in users table as well
+        $stmt = $db->prepare("UPDATE users SET email = ? WHERE id = ?");
+        $stmt->execute([$email, $_SESSION['user_id']]);
+
         // Update session data
         $_SESSION['user_name'] = $firstName . ' ' . $lastName;
         
@@ -119,6 +123,7 @@ function changePassword($data) {
 // Get current user data
 $stmt = $db->prepare("
     SELECT u.*, e.employee_number, e.hire_date, e.basic_salary,
+           e.first_name, e.last_name, e.email as employee_email,
            d.name as department_name, p.title as position_title
     FROM users u
     LEFT JOIN employees e ON u.employee_id = e.id
@@ -276,7 +281,12 @@ if (!$user) {
                     <div class="col-md-4 text-end">
                         <div class="user-summary-card">
                             <h5 class="mb-1 text-white">
-                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                <?php
+                                $firstName = $user['first_name'] ?? '';
+                                $lastName = $user['last_name'] ?? '';
+                                $fullName = trim($firstName . ' ' . $lastName);
+                                echo htmlspecialchars($fullName ?: $user['username']);
+                                ?>
                             </h5>
                             <small class="text-white-75">
                                 <?php echo ucfirst($user['role']); ?>
@@ -328,9 +338,17 @@ if (!$user) {
                     <div class="profile-card">
                         <div class="p-4 text-center">
                             <div class="profile-avatar">
-                                <?php echo strtoupper(substr($user['first_name'], 0, 1) . substr($user['last_name'], 0, 1)); ?>
+                                <?php
+                                $firstName = $user['first_name'] ?? '';
+                                $lastName = $user['last_name'] ?? '';
+                                $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
+                                echo $initials ?: strtoupper(substr($user['username'], 0, 2));
+                                ?>
                             </div>
-                            <h4><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h4>
+                            <h4><?php
+                                $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                                echo htmlspecialchars($fullName ?: $user['username']);
+                            ?></h4>
                             <p class="text-muted mb-3"><?php echo ucfirst($user['role']); ?></p>
                             
                             <?php if ($user['employee_number']): ?>
@@ -366,13 +384,13 @@ if (!$user) {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label text-muted">First Name</label>
-                                        <p class="fw-bold"><?php echo htmlspecialchars($user['first_name']); ?></p>
+                                        <p class="fw-bold"><?php echo htmlspecialchars($user['first_name'] ?? 'Not set'); ?></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label text-muted">Last Name</label>
-                                        <p class="fw-bold"><?php echo htmlspecialchars($user['last_name']); ?></p>
+                                        <p class="fw-bold"><?php echo htmlspecialchars($user['last_name'] ?? 'Not set'); ?></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -444,14 +462,14 @@ if (!$user) {
                                         <div class="mb-3">
                                             <label for="first_name" class="form-label">First Name *</label>
                                             <input type="text" class="form-control" id="first_name" name="first_name"
-                                                   value="<?php echo htmlspecialchars($user['first_name']); ?>" required>
+                                                   value="<?php echo htmlspecialchars($user['first_name'] ?? ''); ?>" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label for="last_name" class="form-label">Last Name *</label>
                                             <input type="text" class="form-control" id="last_name" name="last_name"
-                                                   value="<?php echo htmlspecialchars($user['last_name']); ?>" required>
+                                                   value="<?php echo htmlspecialchars($user['last_name'] ?? ''); ?>" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">

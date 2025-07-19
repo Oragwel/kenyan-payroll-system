@@ -12,17 +12,17 @@ require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
 
-// Initialize database connection (only if not in installation mode)
+// Initialize database connection (only if system is installed)
 $db = null;
 $secureAuth = null;
 
-if (file_exists('.installed') || (isset($_GET['page']) && $_GET['page'] === 'auth')) {
+if (file_exists('config/installed.txt')) {
     try {
-        $database = new Database();
+        // Use the robust database manager
         $db = $database->getConnection();
 
         if ($db) {
-            $secureAuth = new SecureAuth($db);
+            $secureAuth = new SecureAuth($db, $database->getDatabaseType());
         }
     } catch (Exception $e) {
         // Database not available during installation
@@ -32,11 +32,14 @@ if (file_exists('.installed') || (isset($_GET['page']) && $_GET['page'] === 'aut
 
 class SecureAuth {
     private $db;
+    private $dbType;
     private $maxAttempts = 5;
     private $lockoutTime = 900; // 15 minutes
-    
-    public function __construct($database) {
+    private $lockoutDuration = 900; // 15 minutes in seconds
+
+    public function __construct($database, $databaseType = 'mysql') {
         $this->db = $database;
+        $this->dbType = $databaseType;
 
         // Only initialize tables if database connection is available
         if ($this->db) {
@@ -44,6 +47,52 @@ class SecureAuth {
         }
     }
     
+    /**
+     * Get database-specific data types
+     */
+    private function getDataType($type) {
+        switch ($this->dbType) {
+            case 'mysql':
+                switch ($type) {
+                    case 'id': return 'INT PRIMARY KEY AUTO_INCREMENT';
+                    case 'varchar': return 'VARCHAR';
+                    case 'text': return 'TEXT';
+                    case 'boolean': return 'BOOLEAN';
+                    case 'timestamp': return 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP';
+                    default: return $type;
+                }
+            case 'postgresql':
+                switch ($type) {
+                    case 'id': return 'SERIAL PRIMARY KEY';
+                    case 'varchar': return 'VARCHAR';
+                    case 'text': return 'TEXT';
+                    case 'boolean': return 'BOOLEAN';
+                    case 'timestamp': return 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP';
+                    default: return $type;
+                }
+            case 'sqlite':
+                switch ($type) {
+                    case 'id': return 'INTEGER PRIMARY KEY AUTOINCREMENT';
+                    case 'varchar': return 'VARCHAR';
+                    case 'text': return 'TEXT';
+                    case 'boolean': return 'BOOLEAN';
+                    case 'timestamp': return 'DATETIME DEFAULT CURRENT_TIMESTAMP';
+                    default: return $type;
+                }
+            case 'sqlserver':
+                switch ($type) {
+                    case 'id': return 'INT IDENTITY(1,1) PRIMARY KEY';
+                    case 'varchar': return 'NVARCHAR';
+                    case 'text': return 'NTEXT';
+                    case 'boolean': return 'BIT';
+                    case 'timestamp': return 'DATETIME2 DEFAULT GETDATE()';
+                    default: return $type;
+                }
+            default:
+                return $type;
+        }
+    }
+
     /**
      * Initialize security-related database tables
      */
@@ -56,28 +105,25 @@ class SecureAuth {
         try {
             // Create login attempts table if not exists
             $sql = "CREATE TABLE IF NOT EXISTS login_attempts (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                ip_address VARCHAR(45) NOT NULL,
-                username VARCHAR(100),
-                success BOOLEAN DEFAULT FALSE,
-                user_agent TEXT,
-                attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_ip_time (ip_address, attempt_time),
-                INDEX idx_username_time (username, attempt_time)
+                id " . $this->getDataType('id') . ",
+                ip_address " . $this->getDataType('varchar') . "(45) NOT NULL,
+                username " . $this->getDataType('varchar') . "(100),
+                success " . $this->getDataType('boolean') . " DEFAULT 0,
+                user_agent " . $this->getDataType('text') . ",
+                attempt_time " . $this->getDataType('timestamp') . "
             )";
             $this->db->exec($sql);
 
             // Create security logs table if not exists
             $sql = "CREATE TABLE IF NOT EXISTS security_logs (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                user_id INT,
-                event_type VARCHAR(100) NOT NULL,
-                description TEXT,
-                ip_address VARCHAR(45),
-                user_agent TEXT,
-                severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                id " . $this->getDataType('id') . ",
+                user_id INTEGER,
+                event_type " . $this->getDataType('varchar') . "(100) NOT NULL,
+                description " . $this->getDataType('text') . ",
+                ip_address " . $this->getDataType('varchar') . "(45),
+                user_agent " . $this->getDataType('text') . ",
+                severity " . $this->getDataType('varchar') . "(20) DEFAULT 'medium',
+                created_at " . $this->getDataType('timestamp') . "
             )";
             $this->db->exec($sql);
 
@@ -91,14 +137,17 @@ class SecureAuth {
      * Check if IP is currently locked out
      */
     public function isLockedOut($ipAddress) {
+        // Calculate the time threshold (current time minus lockout duration)
+        $timeThreshold = date('Y-m-d H:i:s', time() - $this->lockoutDuration);
+
         $stmt = $this->db->prepare("
-            SELECT COUNT(*) as failed_attempts 
-            FROM login_attempts 
-            WHERE ip_address = ? 
-            AND success = FALSE 
-            AND attempt_time > DATE_SUB(NOW(), INTERVAL ? SECOND)
+            SELECT COUNT(*) as failed_attempts
+            FROM login_attempts
+            WHERE ip_address = ?
+            AND success = 0
+            AND attempt_time > ?
         ");
-        $stmt->execute([$ipAddress, $this->lockoutTime]);
+        $stmt->execute([$ipAddress, $timeThreshold]);
         $result = $stmt->fetch();
         
         return $result['failed_attempts'] >= $this->maxAttempts;
@@ -108,17 +157,29 @@ class SecureAuth {
      * Get remaining lockout time
      */
     public function getLockoutTimeRemaining($ipAddress) {
+        // Calculate the time threshold (current time minus lockout duration)
+        $timeThreshold = date('Y-m-d H:i:s', time() - $this->lockoutDuration);
+
         $stmt = $this->db->prepare("
-            SELECT TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MAX(attempt_time), INTERVAL ? SECOND)) as remaining
-            FROM login_attempts 
-            WHERE ip_address = ? 
-            AND success = FALSE 
-            AND attempt_time > DATE_SUB(NOW(), INTERVAL ? SECOND)
+            SELECT attempt_time
+            FROM login_attempts
+            WHERE ip_address = ?
+            AND success = 0
+            AND attempt_time > ?
+            ORDER BY attempt_time DESC
+            LIMIT 1
         ");
-        $stmt->execute([$this->lockoutTime, $ipAddress, $this->lockoutTime]);
+        $stmt->execute([$ipAddress, $timeThreshold]);
         $result = $stmt->fetch();
-        
-        return max(0, $result['remaining'] ?? 0);
+
+        if ($result && $result['attempt_time']) {
+            $lastAttemptTime = strtotime($result['attempt_time']);
+            $lockoutEndTime = $lastAttemptTime + $this->lockoutDuration;
+            $remaining = $lockoutEndTime - time();
+            return max(0, $remaining);
+        }
+
+        return 0;
     }
     
     /**
@@ -314,10 +375,12 @@ class SecureAuth {
      */
     public function cleanOldRecords() {
         // Clean login attempts older than 24 hours
-        $this->db->exec("DELETE FROM login_attempts WHERE attempt_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
-        
+        $cutoffTime24h = date('Y-m-d H:i:s', time() - (24 * 60 * 60));
+        $this->db->exec("DELETE FROM login_attempts WHERE attempt_time < '$cutoffTime24h'");
+
         // Clean security logs older than 90 days
-        $this->db->exec("DELETE FROM security_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)");
+        $cutoffTime90d = date('Y-m-d H:i:s', time() - (90 * 24 * 60 * 60));
+        $this->db->exec("DELETE FROM security_logs WHERE created_at < '$cutoffTime90d'");
     }
 }
 

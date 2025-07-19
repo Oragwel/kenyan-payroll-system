@@ -290,18 +290,29 @@ try {
 // Get data based on action
 if ($action === 'list' || $action === 'add_type' || $action === 'edit_type') {
     // Get deduction types
-    $stmt = $db->prepare("SELECT * FROM deduction_types WHERE company_id = ? ORDER BY is_statutory DESC, name");
-    $stmt->execute([$_SESSION['company_id']]);
-    $deductionTypes = $stmt->fetchAll();
+    if (DatabaseUtils::tableExists($db, 'deduction_types')) {
+        $stmt = $db->prepare("SELECT * FROM deduction_types WHERE company_id = ? ORDER BY is_statutory DESC, name");
+        $stmt->execute([$_SESSION['company_id']]);
+        $deductionTypes = $stmt->fetchAll();
+    } else {
+        $deductionTypes = [];
+    }
 }
 
 if ($action === 'edit_type' && $deductionId) {
-    $stmt = $db->prepare("SELECT * FROM deduction_types WHERE id = ? AND company_id = ?");
-    $stmt->execute([$deductionId, $_SESSION['company_id']]);
-    $editDeductionType = $stmt->fetch();
-    
-    if (!$editDeductionType) {
-        $message = 'Deduction type not found';
+    if (DatabaseUtils::tableExists($db, 'deduction_types')) {
+        $stmt = $db->prepare("SELECT * FROM deduction_types WHERE id = ? AND company_id = ?");
+        $stmt->execute([$deductionId, $_SESSION['company_id']]);
+        $editDeductionType = $stmt->fetch();
+
+        if (!$editDeductionType) {
+            $message = 'Deduction type not found';
+            $messageType = 'danger';
+            $action = 'list';
+        }
+    } else {
+        $editDeductionType = null;
+        $message = 'Deduction types table not available';
         $messageType = 'danger';
         $action = 'list';
     }

@@ -6,14 +6,20 @@
 
 session_start();
 
-// Comprehensive installation check
-require_once 'includes/installation_check.php';
-enforceInstallationCheck();
+// Check if system is installed, if not redirect to installer
+if (!file_exists('config/installed.txt')) {
+    header('Location: install_new.php');
+    exit;
+}
 
 require_once 'config/database.php';
 require_once 'config/config.php';
 require_once 'includes/functions.php';
+require_once 'includes/DatabaseUtils.php';
 require_once 'secure_auth.php';
+
+// Initialize database utilities
+DatabaseUtils::initialize($database);
 
 // Simple routing
 $page = $_GET['page'] ?? 'dashboard';
